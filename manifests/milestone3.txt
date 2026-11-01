@@ -1,0 +1,20 @@
+# folder|filename|bytes|sha256|url|license
+# Each URL is pinned to a Hugging Face commit, so the file behind it cannot change.
+
+# ACE-Step/Ace-Step1.5
+ace-step/Qwen3-Embedding-0.6B|model.safetensors|1191586416|0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd|https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/19671f406d603126926c1b7e2adc169acbcade22/Qwen3-Embedding-0.6B/model.safetensors|mit
+ace-step/acestep-5Hz-lm-1.7B|model.safetensors|3708521528|f161689da73e5ecefa28ff780d51c2d92a00f056d021d7933c779ed5c6cd7db8|https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/19671f406d603126926c1b7e2adc169acbcade22/acestep-5Hz-lm-1.7B/model.safetensors|mit
+ace-step/acestep-v15-turbo|model.safetensors|4787825604|3f6e0797fad420a39bd33979eb6e840e30989e34a3794e843d23b60ec6e422d7|https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/19671f406d603126926c1b7e2adc169acbcade22/acestep-v15-turbo/model.safetensors|mit
+ace-step/acestep-v15-turbo|silence_latent.pt|3841215|a778e9dd942f5e8b2c09c55370782d318834432b03dabbcdf70e6ed49ad6358b|https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/19671f406d603126926c1b7e2adc169acbcade22/acestep-v15-turbo/silence_latent.pt|mit
+ace-step/vae|diffusion_pytorch_model.safetensors|337431388|da17edb604c40deaf09e9b24974e590d1ca83a374070e5d0884cfa4bed9a99b0|https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/19671f406d603126926c1b7e2adc169acbcade22/vae/diffusion_pytorch_model.safetensors|mit
+
+# ACE-Step/acestep-v15-xl-turbo
+ace-step/acestep-v15-xl-turbo|model-00001-of-00004.safetensors|4986971456|e54a8413c981797312f53d512dec9944023d03f42f0740cbe86f62582cc27bdc|https://huggingface.co/ACE-Step/acestep-v15-xl-turbo/resolve/d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee/model-00001-of-00004.safetensors|mit
+ace-step/acestep-v15-xl-turbo|model-00002-of-00004.safetensors|4986942776|b45f788b6dc9f15957cfa3d9b403f25f3f64c5211ecaf18dda45b67ea6470664|https://huggingface.co/ACE-Step/acestep-v15-xl-turbo/resolve/d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee/model-00002-of-00004.safetensors|mit
+ace-step/acestep-v15-xl-turbo|model-00003-of-00004.safetensors|4986942808|a4f6bd572eab79cf5f3e4678796f904c6d6c33680a3e6ed09034d6de7cabea4d|https://huggingface.co/ACE-Step/acestep-v15-xl-turbo/resolve/d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee/model-00003-of-00004.safetensors|mit
+ace-step/acestep-v15-xl-turbo|model-00004-of-00004.safetensors|4988483464|a868b05493c73808408f58b33a903371bb2846b53c8b19bd7476991bc8837259|https://huggingface.co/ACE-Step/acestep-v15-xl-turbo/resolve/d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee/model-00004-of-00004.safetensors|mit
+ace-step/acestep-v15-xl-turbo|silence_latent.pt|3841215|a778e9dd942f5e8b2c09c55370782d318834432b03dabbcdf70e6ed49ad6358b|https://huggingface.co/ACE-Step/acestep-v15-xl-turbo/resolve/d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee/silence_latent.pt|mit
+
+# ACE-Step/acestep-5Hz-lm-4B
+ace-step/acestep-5Hz-lm-4B|model-00001-of-00002.safetensors|4999914896|ada9d0d4ff48f112de3f7b82cd4e7d57b4245932657e8b8edc9a5ded6a23b77f|https://huggingface.co/ACE-Step/acestep-5Hz-lm-4B/resolve/0a3ec94b557aea7d508da38b31cfe7341f6ff737/model-00001-of-00002.safetensors|mit
+ace-step/acestep-5Hz-lm-4B|model-00002-of-00002.safetensors|3379239240|6302100c3577e2f1dbf32573e9b5e6e6b1bea7af101b433c2d3d6280faa8ab68|https://huggingface.co/ACE-Step/acestep-5Hz-lm-4B/resolve/0a3ec94b557aea7d508da38b31cfe7341f6ff737/model-00002-of-00002.safetensors|mit

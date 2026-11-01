@@ -1,0 +1,378 @@
+{
+  "1": {
+    "class_type": "LoadImageDataSetFromFolder",
+    "_meta": {
+      "title": "Sketch folder (input/sketches)"
+    },
+    "inputs": {
+      "folder": "sketches"
+    }
+  },
+  "2": {
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Fit"
+    },
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1216,
+      "height": 704,
+      "crop": "center"
+    }
+  },
+  "3": {
+    "class_type": "ImageInvert",
+    "_meta": {
+      "title": "Sketch to white-on-black"
+    },
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Picture model"
+    },
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Picture VAE"
+    },
+    "inputs": {
+      "vae_name": "sdxl_vae_fp16_fix.safetensors"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Picture prompt"
+    },
+    "inputs": {
+      "text": "a colorful children's book illustration of a house with a garden under a bright sun, flat paint colors",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Avoid"
+    },
+    "inputs": {
+      "text": "blurry, low quality, watermark, text, signature, deformed hands, extra fingers, hands, pencil, pen, drawing tools",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Sketch guide"
+    },
+    "inputs": {
+      "control_net_name": "xinsir-scribble-sdxl.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Follow the sketch"
+    },
+    "inputs": {
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "control_net": [
+        "8",
+        0
+      ],
+      "image": [
+        "3",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 0.9
+    }
+  },
+  "10": {
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Picture size"
+    },
+    "inputs": {
+      "width": 1216,
+      "height": 704,
+      "batch_size": 1
+    }
+  },
+  "11": {
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "Render picture"
+    },
+    "inputs": {
+      "seed": 4201,
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "9",
+        0
+      ],
+      "negative": [
+        "9",
+        1
+      ],
+      "latent_image": [
+        "10",
+        0
+      ]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode picture"
+    },
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ]
+    }
+  },
+  "13": {
+    "class_type": "LTXVPreprocess",
+    "_meta": {
+      "title": "Prepare first frame"
+    },
+    "inputs": {
+      "image": [
+        "12",
+        0
+      ],
+      "img_compression": 35
+    }
+  },
+  "14": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Video model"
+    },
+    "inputs": {
+      "ckpt_name": "ltxv-2b-0.9.8-distilled.safetensors"
+    }
+  },
+  "15": {
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Text encoder"
+    },
+    "inputs": {
+      "clip_name": "t5xxl_fp16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    }
+  },
+  "16": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Motion prompt"
+    },
+    "inputs": {
+      "text": "the scene gently comes alive, leaves sway, soft light moves, static camera",
+      "clip": [
+        "15",
+        0
+      ]
+    }
+  },
+  "17": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Unused at cfg 1"
+    },
+    "inputs": {
+      "text": "",
+      "clip": [
+        "15",
+        0
+      ]
+    }
+  },
+  "18": {
+    "class_type": "LTXVImgToVideo",
+    "_meta": {
+      "title": "Start from the picture"
+    },
+    "inputs": {
+      "positive": [
+        "16",
+        0
+      ],
+      "negative": [
+        "17",
+        0
+      ],
+      "vae": [
+        "14",
+        2
+      ],
+      "image": [
+        "13",
+        0
+      ],
+      "width": 1216,
+      "height": 704,
+      "length": 97,
+      "batch_size": 1,
+      "strength": 1.0
+    }
+  },
+  "19": {
+    "class_type": "LTXVConditioning",
+    "_meta": {
+      "title": "Frame rate"
+    },
+    "inputs": {
+      "positive": [
+        "18",
+        0
+      ],
+      "negative": [
+        "18",
+        1
+      ],
+      "frame_rate": 24.0
+    }
+  },
+  "20": {
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "Sampler"
+    },
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "21": {
+    "class_type": "ManualSigmas",
+    "_meta": {
+      "title": "Schedule"
+    },
+    "inputs": {
+      "sigmas": "1.0, 0.9937, 0.9875, 0.9812, 0.975, 0.9094, 0.725, 0.4219, 0.0"
+    }
+  },
+  "22": {
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "Render video"
+    },
+    "inputs": {
+      "model": [
+        "14",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": 4302,
+      "cfg": 1.0,
+      "positive": [
+        "19",
+        0
+      ],
+      "negative": [
+        "19",
+        1
+      ],
+      "sampler": [
+        "20",
+        0
+      ],
+      "sigmas": [
+        "21",
+        0
+      ],
+      "latent_image": [
+        "18",
+        2
+      ]
+    }
+  },
+  "23": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode"
+    },
+    "inputs": {
+      "samples": [
+        "22",
+        0
+      ],
+      "vae": [
+        "14",
+        2
+      ]
+    }
+  },
+  "24": {
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Make video"
+    },
+    "inputs": {
+      "images": [
+        "23",
+        0
+      ],
+      "fps": 24.0
+    }
+  },
+  "25": {
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save video"
+    },
+    "inputs": {
+      "video": [
+        "24",
+        0
+      ],
+      "filename_prefix": "video/sketch_to_video",
+      "format": "mp4",
+      "format.codec": "auto"
+    }
+  }
+}

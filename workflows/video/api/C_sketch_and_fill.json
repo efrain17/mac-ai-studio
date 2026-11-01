@@ -1,0 +1,296 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Your sketch"
+    },
+    "inputs": {
+      "image": "sketch_and_fill_example.png"
+    }
+  },
+  "2": {
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Fit"
+    },
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1216,
+      "height": 704,
+      "crop": "center"
+    }
+  },
+  "3": {
+    "class_type": "ImageInvert",
+    "_meta": {
+      "title": "Sketch to white-on-black"
+    },
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Picture model"
+    },
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Picture VAE"
+    },
+    "inputs": {
+      "vae_name": "sdxl_vae_fp16_fix.safetensors"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Picture prompt"
+    },
+    "inputs": {
+      "text": "a colorful children's book illustration of a house with a garden under a bright sun, flat paint colors",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Avoid"
+    },
+    "inputs": {
+      "text": "blurry, low quality, watermark, text, signature, deformed hands, extra fingers, hands, pencil, pen, drawing tools",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Sketch guide"
+    },
+    "inputs": {
+      "control_net_name": "xinsir-scribble-sdxl.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Follow the sketch"
+    },
+    "inputs": {
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "control_net": [
+        "8",
+        0
+      ],
+      "image": [
+        "3",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 0.9
+    }
+  },
+  "10": {
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Picture size"
+    },
+    "inputs": {
+      "width": 1216,
+      "height": 704,
+      "batch_size": 1
+    }
+  },
+  "11": {
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "Render picture"
+    },
+    "inputs": {
+      "seed": 4201,
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "9",
+        0
+      ],
+      "negative": [
+        "9",
+        1
+      ],
+      "latent_image": [
+        "10",
+        0
+      ]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode picture"
+    },
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ]
+    }
+  },
+  "13": {
+    "class_type": "ProgressiveRevealMask",
+    "_meta": {
+      "title": "Lines appear"
+    },
+    "inputs": {
+      "sketch": [
+        "2",
+        0
+      ],
+      "frames": 97,
+      "start": 0.0,
+      "end": 0.55,
+      "softness": 0.05,
+      "seed": 7
+    }
+  },
+  "14": {
+    "class_type": "ProgressiveRevealMask",
+    "_meta": {
+      "title": "Color fills"
+    },
+    "inputs": {
+      "sketch": [
+        "2",
+        0
+      ],
+      "frames": 97,
+      "start": 0.45,
+      "end": 1.0,
+      "softness": 0.05,
+      "seed": 8
+    }
+  },
+  "15": {
+    "class_type": "EmptyImage",
+    "_meta": {
+      "title": "Blank paper"
+    },
+    "inputs": {
+      "width": 1216,
+      "height": 704,
+      "batch_size": 97,
+      "color": 16777215
+    }
+  },
+  "16": {
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Draw the lines"
+    },
+    "inputs": {
+      "destination": [
+        "15",
+        0
+      ],
+      "source": [
+        "2",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": [
+        "13",
+        0
+      ]
+    }
+  },
+  "17": {
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Fill the color"
+    },
+    "inputs": {
+      "destination": [
+        "16",
+        0
+      ],
+      "source": [
+        "12",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": [
+        "14",
+        0
+      ]
+    }
+  },
+  "18": {
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Make video"
+    },
+    "inputs": {
+      "images": [
+        "17",
+        0
+      ],
+      "fps": 24.0
+    }
+  },
+  "19": {
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save video"
+    },
+    "inputs": {
+      "video": [
+        "18",
+        0
+      ],
+      "filename_prefix": "video/sketch_and_fill",
+      "format": "mp4",
+      "format.codec": "auto"
+    }
+  }
+}

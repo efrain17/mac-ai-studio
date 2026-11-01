@@ -1,0 +1,10 @@
+# folder|filename|bytes|sha256|url|license
+# Each URL is pinned to a Hugging Face commit, so the file behind it cannot change.
+
+# Video model and its text encoder.
+StableDiffusion|ltxv-2b-0.9.8-distilled.safetensors|6340744492|76aa8c4786af752fa6f951947129d5290c3c6c0b2fadcadea6b5e114ae2cad8f|https://huggingface.co/Lightricks/LTX-Video/resolve/8984fa25007f376c1a299016d0957a37a2f797bb/ltxv-2b-0.9.8-distilled.safetensors|LTX-Video Open Weights
+TextEncoders|t5xxl_fp16.safetensors|9787841024|6e480b09fae049a72d2a8c5fbccb8d3e92febeb233bbe9dfe7256958a9167635|https://huggingface.co/Comfy-Org/mochi_preview_repackaged/resolve/ed4b8585dc4d3204397291c35e100884686178d6/split_files/text_encoders/t5xxl_fp16.safetensors|apache-2.0
+
+# ControlNets that make a picture follow a hand-drawn sketch.
+ControlNet|xinsir-scribble-sdxl.safetensors|2502139104|b3e4ac47bc814019d50dc842f579301440deb6d8f09ee1b91a30f527ace1b852|https://huggingface.co/xinsir/controlnet-scribble-sdxl-1.0/resolve/0bed4973b80c2329f76e0abf4196c51dfbf9108c/diffusion_pytorch_model.safetensors|apache-2.0
+ControlNet|mistoLine_fp16.safetensors|2502139104|1df519349f3f2b6a3c6ff23127dd9b98a78e1f50628cf4037a5a9527c08b767c|https://huggingface.co/TheMistoAI/MistoLine/resolve/1d9d0b3d48b295cf70d80a0f839a3055672f8393/mistoLine_fp16.safetensors|openrail++

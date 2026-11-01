@@ -1,0 +1,44 @@
+# shellcheck shell=bash disable=SC2034
+# Isolates the studio from anything else on this Mac: other Python, conda, pip or Hugging Face
+# setups never leak in, and the studio writes nothing into their folders.
+
+STUDIO_HOME="${STUDIO_HOME:-$HOME/MacAIStudio}"
+ENVS_DIR="$STUDIO_HOME/envs"
+COMFYUI_ENV="$ENVS_DIR/comfyui"
+COMFYUI_DIR="$STUDIO_HOME/ComfyUI"
+MODELS_DIR="$STUDIO_HOME/models"
+INPUT_DIR="$STUDIO_HOME/input"
+OUTPUT_DIR="$STUDIO_HOME/output"
+LOG_DIR="$STUDIO_HOME/logs"
+RUN_DIR="$STUDIO_HOME/run"
+RUNTIME_DIR="$STUDIO_HOME/runtime"
+CACHE_DIR="$STUDIO_HOME/cache"
+
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE VIRTUAL_ENV
+unset CONDA_PREFIX CONDA_DEFAULT_ENV CONDA_SHLVL CONDA_PYTHON_EXE CONDA_EXE CONDA_ENVS_PATH
+unset PIP_TARGET PIP_PREFIX PIP_USER PIP_INDEX_URL PIP_EXTRA_INDEX_URL PIP_REQUIRE_VIRTUALENV
+unset UV_PYTHON UV_PROJECT_ENVIRONMENT UV_INDEX_URL UV_EXTRA_INDEX_URL UV_CONFIG_FILE
+unset DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_INSERT_LIBRARIES LD_LIBRARY_PATH
+unset GRADIO_SERVER_NAME GRADIO_SERVER_PORT GRADIO_ROOT_PATH GRADIO_SHARE
+
+# Homebrew and Intel tool folders stay off the path, so their libraries are not picked up.
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+
+export PYTHONNOUSERSITE=1
+export PIP_CONFIG_FILE=/dev/null
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+export PIP_NO_INPUT=1
+export PIP_CACHE_DIR="$CACHE_DIR/pip"
+export UV_CACHE_DIR="$CACHE_DIR/uv"
+export UV_NO_CONFIG=1
+export UV_PYTHON_DOWNLOADS=never
+export HF_HOME="$CACHE_DIR/huggingface"
+export TORCH_HOME="$CACHE_DIR/torch"
+export MPLCONFIGDIR="$CACHE_DIR/matplotlib"
+export TMPDIR="$STUDIO_HOME/tmp/"
+
+# No phoning home.
+export HF_HUB_DISABLE_TELEMETRY=1
+export HF_HUB_DISABLE_IMPLICIT_TOKEN=1
+export GRADIO_ANALYTICS_ENABLED=False
+export DO_NOT_TRACK=1

@@ -1,0 +1,6 @@
+# folder|filename|bytes|sha256|url|license
+# Optional fallback video model, installed with: ./milestone2.sh --with-wan
+
+DiffusionModels|wan2.2_ti2v_5B_fp16.safetensors|9999658848|456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e|https://huggingface.co/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors|apache-2.0
+TextEncoders|umt5_xxl_fp16.safetensors|11366399385|7b8850f1961e1cf8a77cca4c964a358d303f490833c6c087d0cff4b2f99db2af|https://huggingface.co/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/text_encoders/umt5_xxl_fp16.safetensors|apache-2.0
+VAE|wan2.2_vae.safetensors|1409400960|e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156|https://huggingface.co/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/vae/wan2.2_vae.safetensors|apache-2.0

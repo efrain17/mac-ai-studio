@@ -1,0 +1,15 @@
+# folder|filename|bytes|sha256|url|license
+# Each URL is pinned to a Hugging Face commit, so the file behind it cannot change.
+
+# Base for the graphic novel and claymation styles.
+StableDiffusion|sd_xl_base_1.0.safetensors|6938078334|31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b|https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/462165984030d82259a11f4367a4eed129e94a7b/sd_xl_base_1.0.safetensors|openrail++
+
+# Photorealistic live human style.
+StableDiffusion|RealVisXL_V5.0_fp16.safetensors|6938065488|6a35a7855770ae9820a3c931d4964c3817b6d9e3c6f9c4dabb5b3a94e5643b80|https://huggingface.co/SG161222/RealVisXL_V5.0/resolve/ac93e0dda1f6d448cae19bbfab8c5e720a5e48bc/RealVisXL_V5.0_fp16.safetensors|openrail++
+
+# SDXL VAE that stays stable at half precision on Metal.
+VAE|sdxl_vae_fp16_fix.safetensors|334641162|235745af8d86bf4a4c1b5b4f529868b37019a10f7c0b2e79ad0abca3a22bc6e1|https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/207b116dae70ace3637169f1ddd2434b91b3a8cd/sdxl_vae.safetensors|mit
+
+# Style LoRAs. Trigger words: "graphic novel illustration" and "Clay Animation, Clay".
+Lora|Graphic_Novel_Illustration-000007.safetensors|456580292|3d2d7a3b875a5bc9fc49a7f822a39ed62962f968e22dd7f2b02594c2e1a5a054|https://huggingface.co/blink7630/graphic-novel-illustration/resolve/1b7b5299e288d4b5984b7244a033b0649b01541a/Graphic_Novel_Illustration-000007.safetensors|other
+Lora|ClayAnimationRedm.safetensors|170540036|1ab7e69b8c5118918bab5a193c2c85497f7138eec081da51d7ef7b54f0efe006|https://huggingface.co/artificialguybr/ClayAnimationRedmond/resolve/e9ff71de987133002aca87e4a01e2ec95af8b6b0/ClayAnimationRedm.safetensors|creativeml-openrail-m
