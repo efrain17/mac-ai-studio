@@ -10,6 +10,7 @@ Items marked *(reported)* come from upstream issue trackers and have not been re
 | --- | --- |
 | `The studio needs Apple Silicon` | Use an Apple Silicon Mac. The tools have no working Intel build at these versions |
 | `macOS ... is too old` | Update to macOS 15 or newer |
+| `The Homebrew ... does not work on macOS` | Homebrew is too old for this macOS. Check with the Mac's owner, since other programs may use it. Run `/opt/homebrew/bin/brew update`, then run the script again. If it still fails, reinstall Homebrew from [brew.sh](https://brew.sh) |
 | `Homebrew could not install ...` | Run `brew doctor`, follow what it says, and run the script again |
 | Stability Matrix is blocked on first open | Go to **System Settings > Privacy & Security** and choose **Open Anyway** |
 | `This Mac already has conda` | Not an error. The studio does not use conda, so the existing one is kept |

@@ -20,6 +20,9 @@ report_conflicts() {
     found="$(/bin/zsh -lc "command -v $tool" 2>/dev/null || true)"
     [ -n "$found" ] && echo "Found $tool: $found"
   done
+  if [ -x "$BREW_PREFIX/bin/brew" ] && ! brew_works; then
+    warn "The Homebrew in $BREW_PREFIX does not work on this macOS. The install will stop until it is updated."
+  fi
   [ -x /usr/local/bin/brew ] && warn "An Intel Homebrew exists in /usr/local. It stays as it is and the studio does not use it."
   for port in 8188 18188 17860 17870; do
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then

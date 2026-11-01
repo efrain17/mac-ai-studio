@@ -18,7 +18,9 @@ if [ -x "$RUNTIME_DIR/services.sh" ]; then
 fi
 
 say "Checking for new versions"
-brew update
+# Updating Homebrew first can repair one that is too old for this macOS.
+brew update || warn "Homebrew could not check for new versions."
+require_working_homebrew
 
 say "Updating tools"
 # Named one by one, so unrelated programs from Homebrew are not part of this update.

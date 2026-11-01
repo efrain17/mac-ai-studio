@@ -65,9 +65,22 @@ require_milestone1() {
     || die "Milestone 1 is not installed. Run ./milestone1.sh first."
 }
 
+# An old Homebrew can crash on a newer macOS even though "brew --version" and "brew list" still
+# work. "brew config" runs the part that crashes.
+brew_works() { "$BREW_PREFIX/bin/brew" config >/dev/null 2>&1; }
+
+# Stops with clear steps. Updating Homebrew is left to its owner, because other software uses it.
+require_working_homebrew() {
+  brew_works || die "The Homebrew in $BREW_PREFIX does not work on macOS $(sw_vers -productVersion); it is probably too old.
+Update it by running: $BREW_PREFIX/bin/brew update
+Other programs on this Mac may use Homebrew, so check with its owner first.
+Then run this script again. See 'Installing' in docs/TROUBLESHOOTING.md."
+}
+
 # Settings for installing: nothing the Mac already has gets upgraded or removed.
 # Upgrades happen only through update.sh.
 use_homebrew() {
+  require_working_homebrew
   export HOMEBREW_NO_AUTO_UPDATE=1
   export HOMEBREW_NO_INSTALL_UPGRADE=1
   export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
