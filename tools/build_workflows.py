@@ -25,10 +25,16 @@ WAN_VAE = "wan2.2_vae.safetensors"
 LTX_SIGMAS = "1.0, 0.9937, 0.9875, 0.9812, 0.975, 0.9094, 0.725, 0.4219, 0.0"
 WIDTH, HEIGHT, FRAMES, FPS = 1216, 704, 97, 24.0
 
-# Pro flows run on Wan 2.2 at its native size and rate: 5 seconds of 1280x704 at 24 fps. Wan has a
-# real negative prompt (cfg 5), so the list below works; it is the one Wan's authors publish, in
-# English. Euler only: uni_pc corrupts across frames on Metal.
-PRO_WIDTH, PRO_HEIGHT, PRO_FRAMES = 1280, 704, 121
+# Pro flows run on Wan 2.2 at its native size and rate: about 5 seconds of 1280x704 at 24 fps. Wan
+# has a real negative prompt (cfg 5), so the list below works; it is the one Wan's authors publish,
+# in English. Euler only: uni_pc corrupts across frames on Metal.
+#
+# 125 frames, not Wan's usual 121. With --use-split-cross-attention, ComfyUI splits attention into
+# 2, 4 ... 64 slices when memory is short, but only when the slices divide the token count evenly;
+# otherwise it silently runs one slice of everything. 121 frames at 1280x704 is 27,280 tokens, which
+# 32 and 64 do not divide, so a busy Mac asked Metal for a 133 GiB buffer and failed on 2026-11-02.
+# 125 frames is 28,160 tokens (64 x 440). check_wan_size() keeps every Wan workflow on such a count.
+PRO_WIDTH, PRO_HEIGHT, PRO_FRAMES = 1280, 704, 125
 PRO_STEPS, PRO_CFG, PRO_SHIFT = 25, 5.0, 8.0
 FILL_FRAMES = 169  # 7 seconds of drawing and filling before the finished picture comes alive
 WAN_AVOID = ("overexposed, static, blurred details, subtitles, style, artwork, painting, still image, "
@@ -50,6 +56,7 @@ NOTE_A = """Text to video (Pro): Wan 2.2, 1280 x 704, 5 seconds at 24 fps.
 - Avoid: already holds Wan's own list. Add anything else you do not want to see.
 - Render video: 25 steps, CFG 5. 20 steps is faster, 30 is finer. Keep euler.
 - Portrait video: set 704 x 1280 in Video size.
+- Length: keep 125, or use 61 or 93 for shorter clips. Other lengths can fail on this Mac with "Invalid buffer size".
 - Each clip takes a long time on this Mac, and the first one also loads the models."""
 NOTE_B = """Sketch folder to video (Pro): one 5-second clip per sketch in input/sketches.
 
@@ -237,8 +244,9 @@ def wan_fallback():
     vae = g.add("VAELoader", "VAE", vae_name="wan2.2_vae.safetensors")
     prompt = g.add("CLIPTextEncode", "Prompt", text=SCENE, clip=[encoder, 0])
     negative = g.add("CLIPTextEncode", "Avoid", text=AVOID, clip=[encoder, 0])
-    size = g.add("Wan22ImageToVideoLatent", "Video size", vae=[vae, 0], width=1280, height=704,
-                 length=121, batch_size=1)
+    check_wan_size(PRO_WIDTH, PRO_HEIGHT, PRO_FRAMES)
+    size = g.add("Wan22ImageToVideoLatent", "Video size", vae=[vae, 0], width=PRO_WIDTH,
+                 height=PRO_HEIGHT, length=PRO_FRAMES, batch_size=1)
     sampler = g.add("KSampler", "Render video", seed=4401, steps=20, cfg=5.0, sampler_name="euler",
                     scheduler="simple", denoise=1.0, model=[model, 0], positive=[prompt, 0],
                     negative=[negative, 0], latent_image=[size, 0])
@@ -248,6 +256,17 @@ def wan_fallback():
 
 
 # ---- Video Pro (Wan 2.2) ----------------------------------------------------------------------
+
+
+def check_wan_size(width, height, length):
+    """Fails the build if ComfyUI's split attention could not slice this clip 64 ways.
+
+    Wan 2.2's VAE shrinks each side 16 times and time 4 times, then the model takes 2x2 patches.
+    """
+    tokens = (width // 32) * (height // 32) * ((length - 1) // 4 + 1)
+    if tokens % 64:
+        raise SystemExit(f"Wan clip {width}x{height}x{length} has {tokens} tokens, not a multiple "
+                         "of 64; split attention would try it in one piece and can fail on Metal.")
 
 
 def wan_model(g):
@@ -261,6 +280,7 @@ def wan_model(g):
 
 def wan_render(g, model, encoder, vae, prompt, seed, start_image=None, length=PRO_FRAMES):
     """Renders one clip; with start_image, the clip begins on that picture."""
+    check_wan_size(PRO_WIDTH, PRO_HEIGHT, length)
     positive = g.add("CLIPTextEncode", "Prompt", text=prompt, clip=encoder)
     negative = g.add("CLIPTextEncode", "Avoid", text=WAN_AVOID, clip=encoder)
     size = dict(vae=vae, width=PRO_WIDTH, height=PRO_HEIGHT, length=length, batch_size=1)

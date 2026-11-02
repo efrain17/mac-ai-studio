@@ -261,7 +261,7 @@
       "widgets_values": [
         1280,
         704,
-        121,
+        125,
         1
       ]
     },
@@ -459,7 +459,7 @@
         "text": ""
       },
       "widgets_values": [
-        "Text to video (Pro): Wan 2.2, 1280 x 704, 5 seconds at 24 fps.\n\n- Prompt: describe the subject, the setting, the light, the camera move and the pace. Add \"slowly\" or \"steady camera\" for calm footage.\n- Avoid: already holds Wan's own list. Add anything else you do not want to see.\n- Render video: 25 steps, CFG 5. 20 steps is faster, 30 is finer. Keep euler.\n- Portrait video: set 704 x 1280 in Video size.\n- Each clip takes a long time on this Mac, and the first one also loads the models."
+        "Text to video (Pro): Wan 2.2, 1280 x 704, 5 seconds at 24 fps.\n\n- Prompt: describe the subject, the setting, the light, the camera move and the pace. Add \"slowly\" or \"steady camera\" for calm footage.\n- Avoid: already holds Wan's own list. Add anything else you do not want to see.\n- Render video: 25 steps, CFG 5. 20 steps is faster, 30 is finer. Keep euler.\n- Portrait video: set 704 x 1280 in Video size.\n- Length: keep 125, or use 61 or 93 for shorter clips. Other lengths can fail on this Mac with \"Invalid buffer size\".\n- Each clip takes a long time on this Mac, and the first one also loads the models."
       ],
       "color": "#432",
       "bgcolor": "#653"
