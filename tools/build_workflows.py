@@ -18,9 +18,51 @@ SDXL_VAE = "sdxl_vae_fp16_fix.safetensors"
 LTX = "ltxv-2b-0.9.8-distilled.safetensors"
 T5 = "t5xxl_fp16.safetensors"
 SCRIBBLE = "xinsir-scribble-sdxl.safetensors"
+WAN = "wan2.2_ti2v_5B_fp16.safetensors"
+UMT5 = "umt5_xxl_fp16.safetensors"
+WAN_VAE = "wan2.2_vae.safetensors"
 # LTX's distilled schedule; distilled models run at cfg 1, so negative prompts have no effect.
 LTX_SIGMAS = "1.0, 0.9937, 0.9875, 0.9812, 0.975, 0.9094, 0.725, 0.4219, 0.0"
 WIDTH, HEIGHT, FRAMES, FPS = 1216, 704, 97, 24.0
+
+# Pro flows run on Wan 2.2 at its native size and rate: 5 seconds of 1280x704 at 24 fps. Wan has a
+# real negative prompt (cfg 5), so the list below works; it is the one Wan's authors publish, in
+# English. Euler only: uni_pc corrupts across frames on Metal.
+PRO_WIDTH, PRO_HEIGHT, PRO_FRAMES = 1280, 704, 121
+PRO_STEPS, PRO_CFG, PRO_SHIFT = 25, 5.0, 8.0
+FILL_FRAMES = 169  # 7 seconds of drawing and filling before the finished picture comes alive
+WAN_AVOID = ("overexposed, static, blurred details, subtitles, style, artwork, painting, still image, "
+             "overall gray, worst quality, low quality, JPEG compression artifacts, ugly, incomplete, "
+             "extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed "
+             "limbs, fused fingers, motionless frame, cluttered background, three legs, many people "
+             "in the background, walking backwards")
+# Wan follows a shot description: subject, setting, light, camera move and pace.
+SCENE_PRO = ("Cinematic wide shot. A small paper sailboat drifts slowly across a calm mountain lake at "
+             "sunrise. Golden light, thin mist over the water, gentle ripples. The camera pushes in "
+             "slowly and steadily. Natural, unhurried motion. 35mm film look, shallow depth of field, "
+             "soft film grain, rich detail.")
+ALIVE = ("the finished illustration gently comes alive: leaves sway in a light breeze, soft sunlight "
+         "moves across the scene, the camera stays still, slow natural motion")
+
+NOTE_A = """Text to video (Pro): Wan 2.2, 1280 x 704, 5 seconds at 24 fps.
+
+- Prompt: describe the subject, the setting, the light, the camera move and the pace. Add "slowly" or "steady camera" for calm footage.
+- Avoid: already holds Wan's own list. Add anything else you do not want to see.
+- Render video: 25 steps, CFG 5. 20 steps is faster, 30 is finer. Keep euler.
+- Portrait video: set 704 x 1280 in Video size.
+- Each clip takes a long time on this Mac, and the first one also loads the models."""
+NOTE_B = """Sketch folder to video (Pro): one 5-second clip per sketch in input/sketches.
+
+- Each sketch becomes a picture that follows its lines, then Wan 2.2 sets it in motion.
+- Picture prompt: the look of the finished picture. Keep it one sentence.
+- Prompt (motion): what moves, and how slowly. Describe the scene again, then the motion.
+- Dark lines on white paper work best."""
+NOTE_C = """Sketch and fill (Pro): 7 seconds of drawing and filling, then 5 seconds of motion.
+
+- Your sketch: choose a dark-on-white drawing. The example is in input.
+- Lines appear, then Color fills: the start and end values are fractions of the 169 frames. Color ends at 0.88, so the finished picture holds still for a moment before it moves.
+- The motion part is Wan 2.2 starting from the finished picture, so the join is seamless.
+- No hands or tools can appear in the drawing part: no model paints those frames."""
 
 
 class Graph:
@@ -103,7 +145,7 @@ def save_video(g, images, prefix):
           **{"format.codec": "auto"})
 
 
-def sketch_render(g, sketch, prompt):
+def sketch_render(g, sketch, prompt, width=WIDTH, height=HEIGHT):
     """Turns a dark-on-white sketch into a finished picture that follows its lines."""
     inverted = g.add("ImageInvert", "Sketch to white-on-black", image=sketch)
     loader = g.add("CheckpointLoaderSimple", "Picture model", ckpt_name="sd_xl_base_1.0.safetensors")
@@ -115,7 +157,7 @@ def sketch_render(g, sketch, prompt):
     applied = g.add("ControlNetApplyAdvanced", "Follow the sketch", positive=[positive, 0],
                     negative=[negative, 0], control_net=[control, 0], image=[inverted, 0],
                     strength=0.8, start_percent=0.0, end_percent=0.9)
-    size = g.add("EmptyLatentImage", "Picture size", width=WIDTH, height=HEIGHT, batch_size=1)
+    size = g.add("EmptyLatentImage", "Picture size", width=width, height=height, batch_size=1)
     sampler = g.add("KSampler", "Render picture", seed=4201, steps=30, cfg=5.0,
                     sampler_name="dpmpp_2m", scheduler="karras", denoise=1.0, model=[loader, 0],
                     positive=[applied, 0], negative=[applied, 1], latent_image=[size, 0])
@@ -205,6 +247,79 @@ def wan_fallback():
     return g.nodes
 
 
+# ---- Video Pro (Wan 2.2) ----------------------------------------------------------------------
+
+
+def wan_model(g):
+    """Loads Wan 2.2 with its text encoder and VAE."""
+    unet = g.add("UNETLoader", "Video model", unet_name=WAN, weight_dtype="default")
+    model = g.add("ModelSamplingSD3", "Timing", model=[unet, 0], shift=PRO_SHIFT)
+    encoder = g.add("CLIPLoader", "Text encoder", clip_name=UMT5, type="wan", device="default")
+    vae = g.add("VAELoader", "Video VAE", vae_name=WAN_VAE)
+    return [model, 0], [encoder, 0], [vae, 0]
+
+
+def wan_render(g, model, encoder, vae, prompt, seed, start_image=None, length=PRO_FRAMES):
+    """Renders one clip; with start_image, the clip begins on that picture."""
+    positive = g.add("CLIPTextEncode", "Prompt", text=prompt, clip=encoder)
+    negative = g.add("CLIPTextEncode", "Avoid", text=WAN_AVOID, clip=encoder)
+    size = dict(vae=vae, width=PRO_WIDTH, height=PRO_HEIGHT, length=length, batch_size=1)
+    if start_image is None:
+        latent = g.add("Wan22ImageToVideoLatent", "Video size", **size)
+    else:
+        latent = g.add("Wan22ImageToVideoLatent", "Start from the picture", **size,
+                       start_image=start_image)
+    sampler = g.add("KSampler", "Render video", seed=seed, steps=PRO_STEPS, cfg=PRO_CFG,
+                    sampler_name="euler", scheduler="simple", denoise=1.0, model=model,
+                    positive=[positive, 0], negative=[negative, 0], latent_image=[latent, 0])
+    return g.add("VAEDecode", "Decode", samples=[sampler, 0], vae=vae)
+
+
+def text_to_video_pro():
+    g = Graph()
+    model, encoder, vae = wan_model(g)
+    decoded = wan_render(g, model, encoder, vae, SCENE_PRO, 4501)
+    save_video(g, [decoded, 0], "video/text_to_video_pro")
+    return g.nodes
+
+
+def sketch_folder_to_video_pro():
+    g = Graph()
+    folder = g.add("LoadImageDataSetFromFolder", "Sketch folder (input/sketches)", folder="sketches")
+    scaled = g.add("ImageScale", "Fit", image=[folder, 0], upscale_method="lanczos",
+                   width=PRO_WIDTH, height=PRO_HEIGHT, crop="center")
+    picture = sketch_render(g, [scaled, 0], FILL, PRO_WIDTH, PRO_HEIGHT)
+    model, encoder, vae = wan_model(g)
+    decoded = wan_render(g, model, encoder, vae, f"{FILL}. {ALIVE}", 4502, start_image=[picture, 0])
+    save_video(g, [decoded, 0], "video/sketch_to_video_pro")
+    return g.nodes
+
+
+def sketch_and_fill_pro():
+    g = Graph()
+    loaded = g.add("LoadImage", "Your sketch", image="sketch_and_fill_example.png")
+    sketch = g.add("ImageScale", "Fit", image=[loaded, 0], upscale_method="lanczos",
+                   width=PRO_WIDTH, height=PRO_HEIGHT, crop="center")
+    picture = sketch_render(g, [sketch, 0], FILL, PRO_WIDTH, PRO_HEIGHT)
+    lines = g.add("ProgressiveRevealMask", "Lines appear", sketch=[sketch, 0], frames=FILL_FRAMES,
+                  start=0.0, end=0.5, softness=0.05, seed=7)
+    color = g.add("ProgressiveRevealMask", "Color fills", sketch=[sketch, 0], frames=FILL_FRAMES,
+                  start=0.45, end=0.88, softness=0.05, seed=8)
+    paper = g.add("EmptyImage", "Blank paper", width=PRO_WIDTH, height=PRO_HEIGHT,
+                  batch_size=FILL_FRAMES, color=16777215)
+    drawn = g.add("ImageCompositeMasked", "Draw the lines", destination=[paper, 0],
+                  source=[sketch, 0], x=0, y=0, resize_source=False, mask=[lines, 0])
+    filled = g.add("ImageCompositeMasked", "Fill the color", destination=[drawn, 0],
+                   source=[picture, 0], x=0, y=0, resize_source=False, mask=[color, 0])
+    model, encoder, vae = wan_model(g)
+    alive = wan_render(g, model, encoder, vae, f"{FILL}. {ALIVE}", 4503, start_image=[picture, 0])
+    # ImageBatch is marked deprecated in v0.43.0 but still runs; its replacement needs the new
+    # auto-growing input format, which has not been checked from source.
+    joined = g.add("ImageBatch", "Drawing, then motion", image1=[filled, 0], image2=[alive, 0])
+    save_video(g, [joined, 0], "video/sketch_and_fill_pro")
+    return g.nodes
+
+
 # ---- Conversion to the format ComfyUI's editor opens ------------------------------------------
 
 OUTPUTS = {
@@ -238,6 +353,7 @@ OUTPUTS = {
     "UNETLoader": ["MODEL"],
     "ModelSamplingSD3": ["MODEL"],
     "Wan22ImageToVideoLatent": ["LATENT"],
+    "ImageBatch": ["IMAGE"],
 }
 # Socket input types by name; everything else on a node is a widget.
 SOCKETS = {
@@ -245,7 +361,7 @@ SOCKETS = {
     "negative": "CONDITIONING", "latent_image": "LATENT", "samples": "LATENT", "images": "IMAGE",
     "image": "IMAGE", "destination": "IMAGE", "source": "IMAGE", "sketch": "IMAGE",
     "mask": "MASK", "sampler": "SAMPLER", "sigmas": "SIGMAS", "control_net": "CONTROL_NET",
-    "video": "VIDEO",
+    "video": "VIDEO", "start_image": "IMAGE", "image1": "IMAGE", "image2": "IMAGE",
 }
 # Widget order as ComfyUI's editor stores it for each node, where it differs from the graph's.
 WIDGETS = {
@@ -263,7 +379,15 @@ def is_link(value):
     return isinstance(value, list)
 
 
-def ui_graph(api):
+def note_node(node_id, order, text):
+    return {
+        "id": node_id, "type": "Note", "title": "Read me", "pos": [60, -260], "size": [620, 230],
+        "flags": {}, "order": order, "mode": 0, "inputs": [], "outputs": [],
+        "properties": {"text": ""}, "widgets_values": [text], "color": "#432", "bgcolor": "#653",
+    }
+
+
+def ui_graph(api, note=None):
     links = []
     nodes = {}
     for node_id, node in api.items():
@@ -303,8 +427,12 @@ def ui_graph(api):
             nodes[source_id]["outputs"][source_slot]["links"].append(link_id)
             slot += 1
     place(api, nodes)
+    last_node_id = max(int(node_id) for node_id in api)
+    if note:
+        last_node_id += 1
+        nodes["note"] = note_node(last_node_id, len(nodes), note)
     return {
-        "last_node_id": max(int(node_id) for node_id in api),
+        "last_node_id": last_node_id,
         "last_link_id": len(links),
         "nodes": list(nodes.values()),
         "links": links,
@@ -337,9 +465,9 @@ def write(path, data):
     path.write_text(json.dumps(data, indent=2) + "\n")
 
 
-def emit(group, name, api):
+def emit(group, name, api, note=None):
     write(ROOT / group / "api" / f"{name}.json", api)
-    write(ROOT / group / f"{name}.json", ui_graph(api))
+    write(ROOT / group / f"{name}.json", ui_graph(api, note))
 
 
 def main():
@@ -349,6 +477,9 @@ def main():
     emit("video", "B_sketch_folder_to_video", sketch_folder_to_video())
     emit("video", "C_sketch_and_fill", sketch_and_fill())
     emit("video-wan", "D_wan_fallback", wan_fallback())
+    emit("video-pro", "A_text_to_video_pro", text_to_video_pro(), NOTE_A)
+    emit("video-pro", "B_sketch_folder_to_video_pro", sketch_folder_to_video_pro(), NOTE_B)
+    emit("video-pro", "C_sketch_and_fill_pro", sketch_and_fill_pro(), NOTE_C)
 
 
 if __name__ == "__main__":

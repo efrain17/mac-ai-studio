@@ -1,0 +1,447 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Your sketch"
+    },
+    "inputs": {
+      "image": "sketch_and_fill_example.png"
+    }
+  },
+  "2": {
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Fit"
+    },
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": 1280,
+      "height": 704,
+      "crop": "center"
+    }
+  },
+  "3": {
+    "class_type": "ImageInvert",
+    "_meta": {
+      "title": "Sketch to white-on-black"
+    },
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Picture model"
+    },
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Picture VAE"
+    },
+    "inputs": {
+      "vae_name": "sdxl_vae_fp16_fix.safetensors"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Picture prompt"
+    },
+    "inputs": {
+      "text": "a colorful children's book illustration of a house with a garden under a bright sun, flat paint colors",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Avoid"
+    },
+    "inputs": {
+      "text": "blurry, low quality, watermark, text, signature, deformed hands, extra fingers, hands, pencil, pen, drawing tools",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Sketch guide"
+    },
+    "inputs": {
+      "control_net_name": "xinsir-scribble-sdxl.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Follow the sketch"
+    },
+    "inputs": {
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "control_net": [
+        "8",
+        0
+      ],
+      "image": [
+        "3",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 0.9
+    }
+  },
+  "10": {
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Picture size"
+    },
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "batch_size": 1
+    }
+  },
+  "11": {
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "Render picture"
+    },
+    "inputs": {
+      "seed": 4201,
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "9",
+        0
+      ],
+      "negative": [
+        "9",
+        1
+      ],
+      "latent_image": [
+        "10",
+        0
+      ]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode picture"
+    },
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ]
+    }
+  },
+  "13": {
+    "class_type": "ProgressiveRevealMask",
+    "_meta": {
+      "title": "Lines appear"
+    },
+    "inputs": {
+      "sketch": [
+        "2",
+        0
+      ],
+      "frames": 169,
+      "start": 0.0,
+      "end": 0.5,
+      "softness": 0.05,
+      "seed": 7
+    }
+  },
+  "14": {
+    "class_type": "ProgressiveRevealMask",
+    "_meta": {
+      "title": "Color fills"
+    },
+    "inputs": {
+      "sketch": [
+        "2",
+        0
+      ],
+      "frames": 169,
+      "start": 0.45,
+      "end": 0.88,
+      "softness": 0.05,
+      "seed": 8
+    }
+  },
+  "15": {
+    "class_type": "EmptyImage",
+    "_meta": {
+      "title": "Blank paper"
+    },
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "batch_size": 169,
+      "color": 16777215
+    }
+  },
+  "16": {
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Draw the lines"
+    },
+    "inputs": {
+      "destination": [
+        "15",
+        0
+      ],
+      "source": [
+        "2",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": [
+        "13",
+        0
+      ]
+    }
+  },
+  "17": {
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Fill the color"
+    },
+    "inputs": {
+      "destination": [
+        "16",
+        0
+      ],
+      "source": [
+        "12",
+        0
+      ],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": [
+        "14",
+        0
+      ]
+    }
+  },
+  "18": {
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Video model"
+    },
+    "inputs": {
+      "unet_name": "wan2.2_ti2v_5B_fp16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "19": {
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "Timing"
+    },
+    "inputs": {
+      "model": [
+        "18",
+        0
+      ],
+      "shift": 8.0
+    }
+  },
+  "20": {
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Text encoder"
+    },
+    "inputs": {
+      "clip_name": "umt5_xxl_fp16.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "21": {
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Video VAE"
+    },
+    "inputs": {
+      "vae_name": "wan2.2_vae.safetensors"
+    }
+  },
+  "22": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Prompt"
+    },
+    "inputs": {
+      "text": "a colorful children's book illustration of a house with a garden under a bright sun, flat paint colors. the finished illustration gently comes alive: leaves sway in a light breeze, soft sunlight moves across the scene, the camera stays still, slow natural motion",
+      "clip": [
+        "20",
+        0
+      ]
+    }
+  },
+  "23": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Avoid"
+    },
+    "inputs": {
+      "text": "overexposed, static, blurred details, subtitles, style, artwork, painting, still image, overall gray, worst quality, low quality, JPEG compression artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless frame, cluttered background, three legs, many people in the background, walking backwards",
+      "clip": [
+        "20",
+        0
+      ]
+    }
+  },
+  "24": {
+    "class_type": "Wan22ImageToVideoLatent",
+    "_meta": {
+      "title": "Start from the picture"
+    },
+    "inputs": {
+      "vae": [
+        "21",
+        0
+      ],
+      "width": 1280,
+      "height": 704,
+      "length": 121,
+      "batch_size": 1,
+      "start_image": [
+        "12",
+        0
+      ]
+    }
+  },
+  "25": {
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "Render video"
+    },
+    "inputs": {
+      "seed": 4503,
+      "steps": 25,
+      "cfg": 5.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": [
+        "19",
+        0
+      ],
+      "positive": [
+        "22",
+        0
+      ],
+      "negative": [
+        "23",
+        0
+      ],
+      "latent_image": [
+        "24",
+        0
+      ]
+    }
+  },
+  "26": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Decode"
+    },
+    "inputs": {
+      "samples": [
+        "25",
+        0
+      ],
+      "vae": [
+        "21",
+        0
+      ]
+    }
+  },
+  "27": {
+    "class_type": "ImageBatch",
+    "_meta": {
+      "title": "Drawing, then motion"
+    },
+    "inputs": {
+      "image1": [
+        "17",
+        0
+      ],
+      "image2": [
+        "26",
+        0
+      ]
+    }
+  },
+  "28": {
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Make video"
+    },
+    "inputs": {
+      "images": [
+        "27",
+        0
+      ],
+      "fps": 24.0
+    }
+  },
+  "29": {
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save video"
+    },
+    "inputs": {
+      "video": [
+        "28",
+        0
+      ],
+      "filename_prefix": "video/sketch_and_fill_pro",
+      "format": "mp4",
+      "format.codec": "auto"
+    }
+  }
+}

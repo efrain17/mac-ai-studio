@@ -70,7 +70,11 @@ Metal failures are often silent. A video can finish with no error and still be w
 | --- | --- |
 | Black video *(reported)* | The launcher already sets `--use-split-cross-attention`, the reported fix. Check that `~/MacAIStudio/logs/10-images.log` shows that it started with this setting. If it persists, install the fallback model |
 | Color grows and turns to noise across frames *(reported)* | This is Wan with `uni_pc`. Use `euler`, which the fallback workflow already sets |
-| LTX fails on this chip | Run `./milestone2.sh --with-wan`, then use `D_wan_fallback` |
+| Motion looks rushed, the clip is over too quickly | The first flows use a small distilled model, LTX 2B, whose motion is hurried, and `--test` clips are only 1.4 seconds long. Use the **Pro** folder: 5-second Wan 2.2 clips at a natural pace. In any prompt, say how things move: "slowly", "steady camera" |
+| LTX fails on this chip | Run `./milestone2-pro.sh` and use the **Pro** folder, which runs on Wan 2.2. `./milestone2.sh --with-wan` installs the same model with one plain workflow, `D_wan_fallback` |
+| A Pro clip takes very long | Expected: a 5-billion-parameter model at 1280×704, with no published speed for ComfyUI on a Mac. For drafts, set **steps** to 20 in **Render video**, or 832×480 in **Video size**. Keep `euler` |
+| A Pro render runs out of memory | Wan 2.2 at full precision has been reported to need over 56 GB on a Mac. Close other apps, or render drafts at 832×480. The target 128 GB Mac has room |
+| Vertical bands or oversaturation from the middle of a Pro clip *(reported)* | The Metal color drift, which `--test` catches. Confirm **Render video** uses `euler`, not `uni_pc`. If it persists, note the chip and macOS version and report it |
 | An operation is "not implemented for MPS" | Add `export PYTORCH_ENABLE_MPS_FALLBACK=1` to `~/MacAIStudio/runtime/services/10-images.conf`. It is off so that such failures are visible, and it makes that operation slower |
 | Workflow rejected, mentioning `format.codec` | Those input names were read from source, not run. Reopen the workflow from the list; if it persists, set the **Save video** box again by hand and save |
 | Sketch folder order looks random | ComfyUI's folder node does not sort. Each video is still correct |
@@ -95,6 +99,8 @@ Metal failures are often silent. A video can finish with no error and still be w
 | A trained LoRA has no effect *(reported)* | Turn off **MLX DiT**. It is slower and uses more memory |
 | Training stops or the loss shows NaN *(reported)* | Half precision can fail on Metal. The reported workaround is a terminal command, so do this for the owner: preprocess at full precision, then point the Train tab at the result. Restart the app between stages |
 | `cannot decode audio through FFmpeg` during install | Keep `ffmpeg@8`. torchcodec 0.10 cannot load FFmpeg 9, which is what the plain `ffmpeg` formula installs |
+| `milestone3-pro.sh`: the song did not render | Read the newest `milestone3-pro-*.log` in `~/MacAIStudio/logs`. The models load the same way as the Music tab, so if the tab opens, they load; the first load takes minutes |
+| A Pro check fails on `Song level`, `Dynamics` or `No dropouts` | Listen to the file before blaming the model. The script uses fixed seeds, so run it again: a repeat failure is real. Then see the Metal rows above |
 
 **Security note.** ACE-Step's lock pins Gradio 6.2.0, which has published advisories, fixed in 6.16.0. The studio keeps the upstream pin because changing it is untested. To limit exposure, the page listens only on this Mac, and neither `--share` nor `--enable-api` is used. Do not add them.
 
@@ -107,3 +113,4 @@ Metal failures are often silent. A video can finish with no error and still be w
 | Can't find the stems | **My Files**, then `stems/<song name>` |
 | Logic Pro level seems very high | The stems are 32-bit float with no limiting, to keep their relative levels. Lower the track fader |
 | Voices are not one identical singer | A known limit. A profile is a description, not a voice model |
+| `Stems add up to the song` fails in the Pro test | The split ran but did not rebuild the song. Run `DEMUCS_DEVICE=cpu ./milestone3-pro.sh`; if that passes, Metal is the cause, and the fix above applies to the page too |

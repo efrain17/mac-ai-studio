@@ -11,7 +11,6 @@ import re
 import subprocess
 import sys
 import tempfile
-import uuid
 
 import gradio as gr
 import numpy as np
@@ -37,15 +36,15 @@ def safe_name(name):
 # ---- Stems ----------------------------------------------------------------------------------
 
 
-def split_stems(audio_path, progress=gr.Progress()):
-    if not audio_path:
-        raise gr.Error("Add a song first.")
-    source = pathlib.Path(audio_path)
-    song = safe_name(source.stem)
-    target = STEMS_DIR / song
-    target.mkdir(parents=True, exist_ok=True)
+def split_file(source, target, progress=None):
+    """Splits one song into vocals, drums, bass and instrumental WAV files inside TARGET.
 
-    progress(0.05, desc="Splitting the song. This can take several minutes.")
+    Returns the written paths by stem name. The page and the Pro test both call this, so a test
+    pass means the page's own split works.
+    """
+    report = progress or (lambda fraction, desc=None: None)
+    target.mkdir(parents=True, exist_ok=True)
+    report(0.05, desc="Splitting the song. This can take several minutes.")
     with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as work:
         # Float output with no clip handling keeps the stems' relative levels exact.
         command = [
@@ -55,10 +54,9 @@ def split_stems(audio_path, progress=gr.Progress()):
         ]
         result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode != 0:
-            print(result.stdout, result.stderr, flush=True)
-            raise gr.Error("The split failed. See the logs folder.")
+            raise RuntimeError(result.stdout + result.stderr)
 
-        progress(0.9, desc="Writing the WAV files")
+        report(0.9, desc="Writing the WAV files")
         produced = pathlib.Path(work) / DEMUCS_MODEL
         written = {}
         instrumental = None
@@ -75,7 +73,19 @@ def split_stems(audio_path, progress=gr.Progress()):
         path = target / "instrumental.wav"
         sf.write(path, instrumental.astype(np.float32), samplerate, subtype="FLOAT")
         written["instrumental"] = str(path)
+    return written
 
+
+def split_stems(audio_path, progress=gr.Progress()):
+    if not audio_path:
+        raise gr.Error("Add a song first.")
+    source = pathlib.Path(audio_path)
+    target = STEMS_DIR / safe_name(source.stem)
+    try:
+        written = split_file(source, target, progress)
+    except RuntimeError as error:
+        print(error, flush=True)
+        raise gr.Error("The split failed. See the logs folder.") from error
     message = f"Saved to {target}. Drag the WAV files from that folder into your audio software."
     return written["vocals"], written["drums"], written["bass"], written["instrumental"], message
 

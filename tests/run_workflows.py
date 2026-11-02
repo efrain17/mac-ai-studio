@@ -23,12 +23,16 @@ def call(server, path, payload=None):
         return response.read()
 
 
-def make_quick(workflow, frames=33):
-    """Shrinks a video workflow so a test finishes in minutes. Sizes stay multiples of 32."""
+def make_quick(workflow, width=512, height=320, frames=33):
+    """Shrinks a video workflow so a test finishes in minutes.
+
+    Sizes must be multiples of 32 and frames one more than a multiple of 8, so that both LTX and
+    Wan accept them.
+    """
     for node in workflow.values():
         inputs = node["inputs"]
         if "width" in inputs and "height" in inputs:
-            inputs["width"], inputs["height"] = 512, 320
+            inputs["width"], inputs["height"] = width, height
         if "length" in inputs:
             inputs["length"] = frames
         if node["class_type"] == "ProgressiveRevealMask":
@@ -69,8 +73,11 @@ def main():
     parser.add_argument("--workflows", type=pathlib.Path, required=True)
     parser.add_argument("--out", type=pathlib.Path, required=True)
     parser.add_argument("--quick", action="store_true", help="small, short video for a smoke test")
+    parser.add_argument("--size", default="512x320", help="WIDTHxHEIGHT for --quick")
+    parser.add_argument("--frames", type=int, default=33, help="frame count for --quick")
     parser.add_argument("--timeout", type=int, default=7200, help="seconds allowed per workflow")
     args = parser.parse_args()
+    width, height = (int(part) for part in args.size.lower().split("x"))
 
     args.out.mkdir(parents=True, exist_ok=True)
     paths = sorted(args.workflows.glob("*.json"))
@@ -83,7 +90,7 @@ def main():
         try:
             workflow = json.loads(path.read_text())
             if args.quick:
-                make_quick(workflow)
+                make_quick(workflow, width, height, args.frames)
             items = render(args.server, workflow, args.timeout)
             if not items:
                 raise RuntimeError("nothing was produced")

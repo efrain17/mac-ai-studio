@@ -3,14 +3,15 @@
 # sketch-and-fill animation. Safe to run again. Needs milestone 1.
 #
 #   ./milestone2.sh             install (about 21 GB of models)
-#   ./milestone2.sh --with-wan  also install the fallback video model (about 23 GB more)
+#   ./milestone2.sh --with-wan  also install the fallback video model (about 23 GB more; the
+#                               same files as ./milestone2-pro.sh, which gives the full Pro flows)
 #   ./milestone2.sh --verify    check the installed models against their checksums
 #   ./milestone2.sh --test      render short videos and check them for Metal failures
 set -euo pipefail
 . "$(dirname "$0")/lib/common.sh"
 
 MANIFEST="$REPO_DIR/manifests/milestone2.txt"
-WAN_MANIFEST="$REPO_DIR/manifests/milestone2-wan.txt"
+WAN_MANIFEST="$REPO_DIR/manifests/milestone2-pro.txt"
 WORKFLOWS_DIR="$COMFYUI_DIR/user/default/workflows/Mac AI Studio"
 TEST_OUT="$OUTPUT_DIR/video_test_samples"
 
@@ -80,4 +81,5 @@ cp "$REPO_DIR"/workflows/video/*.json "$WORKFLOWS_DIR/"
 
 show_next \
   "Check the video pipeline with: ./milestone2.sh --test" \
+  "Sharper, longer clips with natural motion: ./milestone2-pro.sh" \
   "Manual test steps: docs/MANUAL_TESTS.md"
