@@ -20,6 +20,9 @@ start_run milestone4
 say "Models"
 check "Image models (checksums)" verify_models "$REPO_DIR/manifests/milestone1.txt"
 check "Video models (checksums)" verify_models "$REPO_DIR/manifests/milestone2.txt"
+if [ -d "$COMFYUI_DIR/user/default/workflows/Mac AI Studio/Pro" ]; then
+  check "Pro video models (checksums)" verify_models "$REPO_DIR/manifests/milestone2-pro.txt"
+fi
 check "Music models (checksums)" verify_models "$REPO_DIR/manifests/milestone3.txt"
 
 say "Programs"

@@ -51,6 +51,7 @@ Each tool has its own environment, so ComfyUI's torch 2.15 and ACE-Step's torch 
 - **Stability Matrix can also update itself,** since it checks for new versions by default. That could happen outside `update.sh`.
 - **ACE-Step is pinned to a commit, not its last tag.** Tag `v0.1.8` lacks fixes for garbled XL output on Apple Silicon, MP3 export and `--precision fp32` on Metal.
 - **LTX-Video 0.9.8, 2B distilled, is the video model.** It is ungated, runs on ComfyUI's built-in nodes, and has a positive Metal report. Evidence is thin, so the install includes a pixel check and an optional Wan 2.2 fallback.
+- **Wan 2.2 TI2V 5B is the Pro video model.** It takes a real negative prompt and guidance, moves at a natural pace, is Apache-2.0, and is the same file as the milestone 2 fallback, so the Pro install adds no new pin. Rejected for Pro on this Mac: Wan 2.2 A14B (two 28 GB files, hours per clip at half precision on Metal), HunyuanVideo 1.5 (no Metal report found), LTX-Video 13B (the same hurried motion as 2B, and its upscaler needs third-party nodes).
 - **Rejected for video:** AnimateDiff (pickled motion modules), LTX-2.5 (gated, about 70 GB), any `fp8` or `int8` file.
 - **No third-party custom nodes.** The only added node is `custom_nodes/reveal_mask.py`, about 50 lines in this repository. Read it in full before trusting it. It computes masks only, and touches neither files nor the network.
 - **Comfy Desktop was not used.** The [official desktop app](https://docs.comfy.org/installation/desktop/macos) exists for Apple Silicon, but it updates itself, is set up by hand, and covers only ComfyUI. A small native wrapper, `app/MacAIStudio.swift`, shows all the tools in one window while keeping versions pinned.
@@ -77,7 +78,7 @@ Read the original license before commercial use. This is a summary, not legal ad
 | [MistoLine](https://huggingface.co/TheMistoAI/MistoLine) | OpenRAIL++ | |
 | [ACE-Step 1.5 models](https://huggingface.co/ACE-Step) | MIT | |
 | [Demucs htdemucs_ft](https://huggingface.co/adefossez/HTDemucs-ft) | Unclear | **[Upstream says](https://github.com/adefossez/demucs/commit/829d21890023800713e5dd231c67e43ecc06069b) the code is MIT but the weights' license is not clear** |
-| [Wan 2.2](https://huggingface.co/Comfy-Org/Wan-2.2) (optional) | Apache-2.0 | |
+| [Wan 2.2](https://huggingface.co/Comfy-Org/Wan-2.2) (Pro flows, optional) | Apache-2.0 | |
 
 ## Updating versions
 

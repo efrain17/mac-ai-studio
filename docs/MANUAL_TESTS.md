@@ -63,6 +63,34 @@ For sketch and fill with your own drawing, use dark lines on white paper, and ch
 
 **Pass:** the folder batch makes one video per sketch, the style prompts give valid video, and sketch and fill shows no tools.
 
+## Milestone 2 Pro: video on Wan 2.2
+
+**Automatic check**
+
+```bash
+./milestone2-pro.sh --test
+```
+
+It renders each Pro workflow at preview size (832×480, 2 seconds) and runs the same checks for black frames and growing color corruption. These previews exist for the checks, not for judging the look. To judge the look, render full-size samples. This can take hours, and the Mac stays awake:
+
+```bash
+./milestone2-pro.sh --samples
+```
+
+**By hand**, in the **Mac AI Studio > Pro** workflow folder. Each workflow has a **Read me** note on its canvas.
+
+| # | Do this | Expect |
+| --- | --- | --- |
+| 1 | Open `A_text_to_video_pro`, press **Run** | A 5-second 1280×704 clip that moves at a natural pace |
+| 2 | Open `B_sketch_folder_to_video_pro`, press **Run** | **One 5-second clip per sketch**, each starting from a picture that follows that sketch's lines, then moving gently |
+| 3 | Open `C_sketch_and_fill_pro`, press **Run** | Blank paper, lines appear, color fills in and holds for a moment, then the finished picture comes alive. About 12 seconds |
+| 4 | Watch video 3 from start to end, at full size | **No hands, pencils or drawing tools during the drawing part** |
+| 5 | Change the **Prompt** in `A`, keeping words such as "slowly" and "steady camera", and press **Run** | A new clip at the same calm pace |
+
+Note the render time of each clip. They are the numbers to quote.
+
+**Pass:** the three Pro clips play at a natural pace, with no black frames and no color drift, and the join in video 3 is seamless.
+
 ## Milestone 3: music and stems
 
 **Automatic check**
@@ -90,6 +118,32 @@ It splits a generated tone offline, and confirms that both pages answer.
 **LoRA note:** run a real training job on the Mac before promising it. If it fails, see [Music](TROUBLESHOOTING.md#music). Turn off MLX DiT when using a trained LoRA.
 
 **Pass:** a test track generated from provided lyrics, then split into vocal and instrument WAV stems.
+
+## Milestone 3 Pro: a real song, split and checked
+
+```bash
+./milestone3-pro.sh
+```
+
+Quit Mac AI Studio first; the script stops the tools anyway, because the Music tab holds its own copy of the models. It renders a 2-minute indie folk song with vocals using the Music tab's own settings, splits it with the Stems & Voices page's own code, and checks both. Every line should say `PASS`. The folder opens at the end with `indie_folk_vocal.wav`, its `.json` (caption, lyrics, settings and render time) and a `stems` folder.
+
+| Check | What it means |
+| --- | --- |
+| Song format, Song length, Song level, No clipping | Stereo at 48 kHz, within 15% of the asked length, at a normal level, without distortion |
+| Real stereo, No dropouts, Dynamics, Full bandwidth | Not mono in disguise, no silent gaps, quieter and louder passages, highs present |
+| Stem vocals, drums, bass, instrumental; Stems match | Four WAV files of the same length and rate |
+| Stems add up to the song, Vocals were found, Drums and bass are separate | The split is real: the stems rebuild the song, and the voice landed in the vocal stem |
+| Voice profiles | Describe, save, reload and delete work, in a temporary folder |
+
+To judge the sound rather than the numbers:
+
+```bash
+./milestone3-pro.sh --samples
+```
+
+Three full songs: indie folk with vocals, a cinematic score, upbeat pop with vocals. Listen to each from start to end at full volume, and open the stems of the two vocal songs in Logic Pro. The render times are in the `.json` files; they are the numbers to quote. Each `.json` also holds the caption and lyrics, ready to paste into the Music tab.
+
+**Pass:** every line says `PASS`, each song sounds like a finished track, and the vocal stems are clean voices.
 
 ## Milestone 4: live session
 
@@ -120,7 +174,7 @@ A short, reliable order. Render the slow items before the meeting, and start one
 1. Quit everything, then open **Mac AI Studio** from the Dock, to show that it is one app.
 2. Turn Wi-Fi off, to show that it is offline.
 3. **Images:** show the three samples, then run one fresh prompt.
-4. **Video:** play the sketch-and-fill clip first, since it is the most striking, then show the folder batch.
+4. **Video:** play the Pro sketch-and-fill clip first, since it is the most striking, then show the folder batch.
 5. **Music:** play a generated song.
 6. **Stems:** split it, then drag the stems into Logic Pro.
 7. Press **My Files**, to show that everything is ordinary files on the Mac.

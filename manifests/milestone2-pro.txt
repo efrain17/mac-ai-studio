@@ -1,5 +1,6 @@
 # folder|filename|bytes|sha256|url|license
-# Optional fallback video model, installed with: ./milestone2.sh --with-wan
+# Wan 2.2 TI2V 5B: the Pro video model (./milestone2-pro.sh), and milestone 2's optional
+# fallback (./milestone2.sh --with-wan). Both install these same files, so nothing is downloaded twice.
 
 DiffusionModels|wan2.2_ti2v_5B_fp16.safetensors|9999658848|456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e|https://huggingface.co/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors|apache-2.0
 TextEncoders|umt5_xxl_fp16.safetensors|11366399385|7b8850f1961e1cf8a77cca4c964a358d303f490833c6c087d0cff4b2f99db2af|https://huggingface.co/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/text_encoders/umt5_xxl_fp16.safetensors|apache-2.0

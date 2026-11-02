@@ -12,6 +12,8 @@ Generic placeholder content for testing and training.
 
 - **Text to video:** `a paper sailboat drifting across a calm lake at sunrise, gentle ripples, slow camera push in`
 - **Motion for a sketch:** `the scene gently comes alive, leaves sway, soft light moves, static camera`
+- **Text to video (Pro):** `Cinematic wide shot. A paper sailboat drifts slowly across a calm lake at sunrise. Golden light, thin mist, gentle ripples. The camera pushes in slowly and steadily. Natural, unhurried motion, 35mm film look, soft film grain.`
+- **Motion for a sketch (Pro):** `a colorful children's book illustration of a house with a garden under a bright sun. The finished illustration gently comes alive: leaves sway in a light breeze, soft sunlight moves across the house, the camera stays still, slow natural motion`
 
 ## Music
 
