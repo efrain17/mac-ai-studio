@@ -49,8 +49,9 @@ case "${1:-}" in
     require_milestone1
     require_milestone2
     verify_models "$MANIFEST" || die "Models are missing or damaged. Run ./milestone2-pro.sh again."
-    say "Rendering preview-size test videos (832x480, 2 seconds). This takes a while on the first run."
-    render "$TEST_OUT" --quick --size 832x480 --frames 49 \
+    # 896x512 keeps Wan's token count a multiple of 64 at any length (see check_wan_size).
+    say "Rendering preview-size test videos (896x512, 2 seconds). This takes a while on the first run."
+    render "$TEST_OUT" --quick --size 896x512 --frames 49 \
       || die "A video test failed. See 'Video' in docs/TROUBLESHOOTING.md."
     exit 0
     ;;

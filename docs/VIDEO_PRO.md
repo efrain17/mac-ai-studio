@@ -16,7 +16,7 @@ Two things make even the full-size clips look rushed:
 | | Milestone 2 | Milestone 2 Pro |
 | --- | --- | --- |
 | Model | LTX-Video 2B distilled, 6 GB | Wan 2.2 TI2V 5B at full precision, 10 GB, plus its 11 GB text encoder |
-| Clip | 1216×704, 97 frames, 4 s at 24 fps | 1280×704, 121 frames, 5 s at 24 fps |
+| Clip | 1216×704, 97 frames, 4 s at 24 fps | 1280×704, 125 frames, 5.2 s at 24 fps |
 | Sampling | 8 distilled steps, guidance 1, no negative prompt | 25 euler steps, guidance 5, Wan's own negative prompt |
 | Prompt | One line | A shot description: subject, setting, light, camera move, pace |
 | Sketch and fill | 4 s of drawing and filling | 7 s of drawing and filling, a short hold, then 5 s in which the finished picture comes alive, in one file |
@@ -42,6 +42,14 @@ Rejected for this Mac: Wan 2.2 A14B (two 28 GB files; at half precision on Metal
 - **The known Metal fault.** Color that drifts or bands from the middle of a clip is reported for Wan on Apple Silicon. The flows use `euler`, which avoids the `uni_pc` case, and `--test` checks every clip for it.
 - **Quality ceiling.** 5B is Wan's middle tier. It is a clear step up from LTX 2B in motion and detail, not the best video model that exists. The A14B tier is better and impractical on this Mac today ([Modelfit on Wan 2.2 on Mac](https://modelfit.io/blog/wan-2-2-on-mac/)).
 - **No sound.** Like all the video flows, the Pro clips are silent. Music comes from milestone 3 and is joined to a clip in a video editor.
+
+## Found on the first run (2026-11-02)
+
+The first Pro render on the owner's Mac stopped after 37 seconds with `Invalid buffer size: 133.07 GiB`. The cause was the clip length, not the Mac. ComfyUI splits Wan's attention into 2, 4, up to 64 pieces when memory is short, but only when the pieces divide the clip's token count evenly. Otherwise it silently tries the whole thing at once. 121 frames at 1280×704 is 27,280 tokens, which 32 and 64 do not divide, so on a busy Mac it asked Metal for one 133 GiB block.
+
+The workflows now use 125 frames: 28,160 tokens, 64 × 440, so the worst case is 64 pieces of about 2 GiB each. `tools/build_workflows.py` refuses to build a Wan workflow whose token count is not a multiple of 64. The milestone 2 fallback, `D_wan_fallback`, had the same length and is fixed too. Run `./milestone2-pro.sh` again to install the corrected workflows; it downloads nothing new.
+
+That render did load the models and start sampling, so the install itself works on the Mac.
 
 ## Install and test
 
