@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Local page with two tools: stem splitting (Demucs) and a library of voice profiles.
+"""Local page with three tools: stem splitting (Demucs), song analysis (librosa) and a library of
+voice profiles.
 
 Runs on 127.0.0.1 only, with analytics off. Nothing leaves the Mac.
 """
@@ -30,6 +31,10 @@ STEM_CHOICES = {
 }
 DEFAULT_CHOICE = next(iter(STEM_CHOICES))
 ALL_STEMS = ("vocals", "instrumental", "drums", "bass", "other", "guitar", "piano")
+NOTES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+# Krumhansl-Kessler key profiles: how much each of the 12 notes belongs to a major or minor key.
+MAJOR_PROFILE = (6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
+MINOR_PROFILE = (6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
 
 AGES = ["child", "teenager", "young adult", "adult", "middle-aged", "elderly"]
 GENDERS = ["female", "male", "androgynous"]
@@ -102,6 +107,66 @@ def split_stems(audio_path, choice, progress=gr.Progress()):
     # Players for stems this choice did not produce are hidden.
     players = [gr.update(value=written.get(stem), visible=stem in written) for stem in ALL_STEMS]
     return [*players, message]
+
+
+# ---- Analysis -------------------------------------------------------------------------------
+
+
+def estimate_key(chroma):
+    """The key whose profile matches the note mix best, e.g. "A major" or "F# minor"."""
+    chroma = np.asarray(chroma, dtype=float)
+    best, best_score = "unknown", -2.0
+    for mode, profile in (("major", MAJOR_PROFILE), ("minor", MINOR_PROFILE)):
+        for shift in range(12):
+            score = np.corrcoef(chroma, np.roll(profile, shift))[0, 1]
+            if score > best_score:
+                best, best_score = f"{NOTES[shift]} {mode}", score
+    return best
+
+
+def db(value):
+    return 20 * np.log10(max(float(value), 1e-9))
+
+
+def analyze_file(source):
+    """Tempo, key, length and levels of one audio file, as a dict of plain values."""
+    import librosa  # Slow to import, so only when the page needs it.
+
+    audio, samplerate = librosa.load(str(source), sr=None, mono=True)
+    if len(audio) < samplerate:
+        raise RuntimeError("The file is shorter than one second.")
+    tempo, beats = librosa.beat.beat_track(y=audio, sr=samplerate)
+    chroma = librosa.feature.chroma_cqt(y=audio, sr=samplerate).mean(axis=1)
+    return {
+        "length_seconds": round(len(audio) / samplerate, 1),
+        "tempo_bpm": round(float(np.atleast_1d(tempo)[0]), 1),
+        "beats": int(len(beats)),
+        "key": estimate_key(chroma),
+        "peak_dbfs": round(db(np.abs(audio).max()), 1),
+        "loudness_dbfs": round(db(np.sqrt(np.mean(audio**2))), 1),
+        "samplerate": int(samplerate),
+    }
+
+
+def analyze_song(audio_path):
+    if not audio_path:
+        raise gr.Error("Add a song first.")
+    try:
+        result = analyze_file(audio_path)
+    except (RuntimeError, ValueError, OSError) as error:
+        print(error, flush=True)
+        raise gr.Error("The analysis failed. See the logs folder.") from error
+    minutes, seconds = divmod(result["length_seconds"], 60)
+    return (
+        f"| | |\n|---|---|\n"
+        f"| **Tempo** | {result['tempo_bpm']} BPM ({result['beats']} beats found) |\n"
+        f"| **Key** | {result['key']} |\n"
+        f"| **Length** | {int(minutes)}:{seconds:04.1f} |\n"
+        f"| **Peak level** | {result['peak_dbfs']} dBFS |\n"
+        f"| **Average loudness** | {result['loudness_dbfs']} dBFS |\n"
+        f"| **Sample rate** | {result['samplerate']} Hz |\n\n"
+        "Tempo and key are estimates. A song with a tempo change or a key change gets one overall value."
+    )
 
 
 # ---- Voice profiles -------------------------------------------------------------------------
@@ -180,6 +245,16 @@ def build():
                 players["guitar"] = gr.Audio(label="Guitar", interactive=False, visible=False)
                 players["piano"] = gr.Audio(label="Piano", interactive=False, visible=False)
             split.click(split_stems, [song, choice], [*(players[s] for s in ALL_STEMS), status])
+
+        with gr.Tab("Analyze"):
+            gr.Markdown(
+                "Drop in a song to read its tempo, key, length and levels before taking it into "
+                "your audio software. Works on a generated song or on a stem."
+            )
+            to_analyze = gr.Audio(label="Song or stem", type="filepath", sources=["upload"])
+            analyze = gr.Button("Analyze", variant="primary")
+            analysis = gr.Markdown()
+            analyze.click(analyze_song, to_analyze, analysis)
 
         with gr.Tab("Voice Profiles"):
             gr.Markdown(

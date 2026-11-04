@@ -1,6 +1,6 @@
 # Dependencies, versions and sources
 
-Checked on 2026-11-01 against official documentation, release pages and source. Homebrew tools follow Homebrew's current releases, and Homebrew verifies what it downloads. Everything else is pinned, and checked against a SHA-256 or a commit.
+Checked on 2026-11-01, and on 2026-11-04 for milestone 4, against official documentation, release pages and source. Homebrew tools follow Homebrew's current releases, and Homebrew verifies what it downloads. Everything else is pinned, and checked against a SHA-256 or a commit.
 
 ## System requirements
 
@@ -20,6 +20,8 @@ Checked on 2026-11-01 against official documentation, release pages and source. 
 | FFmpeg | [`ffmpeg@8`](https://formulae.brew.sh/formula/ffmpeg@8) | 8.1.3 | Audio in ACE-Step and Demucs |
 | Miniconda | [`miniconda`](https://formulae.brew.sh/cask/miniconda) | 26.9.4 | Installed as a requested base tool; the studio does not use it |
 | Stability Matrix | [`stability-matrix`](https://formulae.brew.sh/cask/stability-matrix) | 2.16.5 | Model manager |
+| LM Studio | [`lm-studio`](https://formulae.brew.sh/cask/lm-studio) | 0.4.28 | Runs the chat model, serves it to AnythingLLM, has the ComfyUI tools too |
+| AnythingLLM | [`anythingllm`](https://formulae.brew.sh/cask/anythingllm) | 1.19.0 | The Chat tab: documents, workspace, agent with the ComfyUI tools |
 
 Homebrew's FFmpeg includes GPL-licensed codecs such as x264 and x265.
 
@@ -36,6 +38,7 @@ These are not in Homebrew in a usable form for this setup, so they keep their pi
 | ACE-Step 1.5 | Commit `ca1e85f` | `milestone3.sh` | [repo](https://github.com/ace-step/ACE-Step-1.5/tree/ca1e85fe9430179831e6bc6be790c332190a3866) |
 | Demucs | 4.1.0 | `locks/stems-voices-macos-arm64.lock` | [repo](https://github.com/adefossez/demucs/tree/v4.1.0) |
 | Gradio, for the stems page | 6.30.0 | Same lock | [PyPI](https://pypi.org/project/gradio/6.30.0/) |
+| librosa, for the Analyze tool | 1.0.0 | Same lock | [PyPI](https://pypi.org/project/librosa/1.0.0/) |
 | PyTorch for stems | 2.10.0 | Same lock | [PyPI](https://pypi.org/project/torch/2.10.0/) |
 | Swift compiler, WebKit | From Command Line Tools | Used to build the app | Apple |
 
@@ -60,6 +63,11 @@ Each tool has its own environment, so ComfyUI's torch 2.15 and ACE-Step's torch 
 - **`PYTORCH_ENABLE_MPS_FALLBACK` is not set,** so that unsupported operations fail visibly.
 - **Demucs weights use the safetensors files from Hugging Face.** The older pickled weights on another host are avoided, and the install fails if they are ever used.
 - **Instrumental stem.** Demucs's `other` stem is not an instrumental, so the page adds every non-vocal stem together. It also shows `other` on its own.
+- **gpt-oss-120b is the chat model,** as `mlx-community/gpt-oss-120b-MXFP4-Q8` (63 GB, Apache-2.0). Its weights are MXFP4 upstream, so this build loses nothing; the `lmstudio-community` MLX build is the same model stored at 8 bits, 124 GB, which does not fit a 128 GB Mac next to the other models. It calls tools well, which the agent needs. Considered: `Qwen3.6-35B-A3B` (newer, faster, but 3 billion active parameters and weaker on long documents) and `Qwen3.5-122B-A10B` 4-bit (70 GB, less proven for tool calls). The files are downloaded by the installer with checksums and linked into LM Studio's model folder, so LM Studio downloads nothing.
+- **The ComfyUI tools are about 300 lines in `runtime/comfy_mcp.py`,** standard library only, speaking the Model Context Protocol over stdin and stdout. No third-party MCP package, and no ComfyUI node: it uses ComfyUI's own HTTP API, the same one `tests/run_workflows.py` uses. Read it in full before trusting it. It renders only the studio's workflows, with a new prompt and seed.
+- **The documentation is fetched as git partial clones at fixed commits,** only the named folders, so no file can change under the pin and no images are downloaded. Hugging Face model cards are pinned by commit and checksum in `manifests/milestone4.txt`. AnythingLLM's embedding model (`Xenova/all-MiniLM-L6-v2`) is pinned the same way and placed in its folder, so the import works offline.
+- **AnythingLLM's model choice is made by hand once.** The desktop app keeps the LLM provider in its own environment, which no documented file or API sets, so the installer writes only what it can: the MCP settings file, the embedding model, the workspace (through the REST API, with a key it adds to AnythingLLM's own SQLite database) and the documents.
+- **librosa over Essentia** for the Analyze tool: ISC license, plain wheels for Apple Silicon, same numpy as the stems page. Essentia is AGPL and its Apple Silicon builds are less dependable.
 - **Two Demucs models.** `htdemucs_ft` (4 stems) is the default and the better one. `htdemucs_6s` adds guitar and piano at lower quality, from the same account, 55 MB, pinned by commit and checksum like the first. Both are tested offline at install.
 
 ## Model licenses
@@ -78,6 +86,8 @@ Read the original license before commercial use. This is a summary, not legal ad
 | [Scribble SDXL ControlNet](https://huggingface.co/xinsir/controlnet-scribble-sdxl-1.0) | Apache-2.0 | |
 | [MistoLine](https://huggingface.co/TheMistoAI/MistoLine) | OpenRAIL++ | |
 | [ACE-Step 1.5 models](https://huggingface.co/ACE-Step) | MIT | |
+| [gpt-oss-120b, MXFP4 MLX build](https://huggingface.co/mlx-community/gpt-oss-120b-MXFP4-Q8) | Apache-2.0 | |
+| [all-MiniLM-L6-v2 for AnythingLLM](https://huggingface.co/Xenova/all-MiniLM-L6-v2) | Apache-2.0 | |
 | [Demucs htdemucs_ft](https://huggingface.co/adefossez/HTDemucs-ft) and [htdemucs_6s](https://huggingface.co/adefossez/HTDemucs-6s) | Unclear | **[Upstream says](https://github.com/adefossez/demucs/commit/829d21890023800713e5dd231c67e43ecc06069b) the code is MIT but the weights' license is not clear** |
 | [Wan 2.2](https://huggingface.co/Comfy-Org/Wan-2.2) (Pro flows, optional) | Apache-2.0 | |
 

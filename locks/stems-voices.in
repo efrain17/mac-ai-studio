@@ -3,3 +3,4 @@ gradio==6.30.0
 torch==2.10.0
 soundfile
 numpy
+librosa==1.0.0

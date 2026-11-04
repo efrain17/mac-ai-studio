@@ -32,6 +32,8 @@ load_service() {
   local file="$SERVICE_DIR/$1.conf"
   case "$1" in *[!a-z0-9-]*|'') fail "Bad tool name: $1" ;; esac
   [ -f "$file" ] || fail "Tool is not installed: $1"
+  # A tool that starts other programs defines service_stop to quit them; most tools do not.
+  unset -f service_stop
   # shellcheck disable=SC1090
   . "$file"
 }
@@ -107,6 +109,7 @@ stop_tree() {
 
 cmd_stop() {
   local id="$1" pid waited=0
+  load_service "$id"
   if service_running "$id"; then
     pid="$(cat "$RUN_DIR/$id.pid")"
     stop_tree "$pid"
@@ -116,6 +119,7 @@ cmd_stop() {
     done
     kill -9 "$pid" 2>/dev/null || true
   fi
+  if type service_stop >/dev/null 2>&1; then service_stop >> "$LOG_DIR/$id.log" 2>&1 || true; fi
   rm -f "$RUN_DIR/$id.pid" "$RUN_DIR/$id.started" "$RUN_DIR/$id.port"
 }
 
