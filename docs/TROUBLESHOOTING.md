@@ -43,7 +43,8 @@ Items marked *(reported)* come from upstream issue trackers and have not been re
 
 | Problem | Fix |
 | --- | --- |
-| A tab says the tool did not start | Open `~/MacAIStudio/logs/<tool>.log`. The last lines give the reason |
+| A tab says the tool did not start | The tab shows the reason. Click **Show logs** and open `<tool>.log`; the last lines say more. **Try again** starts the tool once more |
+| A tab shows the loading screen for a long time | Nothing is frozen: the clock keeps counting, and the tool answers when its models are loaded. The screen says how long the studio waits before it reports a problem (3 minutes for images and stems, 5 for chat, 15 for music) |
 | "Not installed correctly" on launch | Run `./milestone1.sh` again |
 | The app was force-quit and a tool still runs | Run `~/MacAIStudio/runtime/services.sh stop-all` |
 | The app does not appear after moving the Mac's user folder | Run `./milestone1.sh` again to rebuild it |

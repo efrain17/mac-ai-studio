@@ -62,7 +62,7 @@ The Homebrew installer asks you to press Return and type the Mac's admin passwor
 
 ## Daily use
 
-Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
+Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
 
 ## Updating
 
@@ -117,7 +117,7 @@ These scripts have **not yet been run on Apple Silicon**. They were developed on
 | Refusal on an unsupported Mac; script syntax and lint | Running any `milestone` script from start to finish |
 | Model URLs, sizes and checksums; resume, damage and repair handling | Every Homebrew install and `update.sh`; Stability Matrix and its shared models |
 | Port conflicts and clean tool shutdown | PyTorch on Metal; every render time |
-| Desktop app build, launch and quit, with stand-in tools | The app showing the real tools; clicking through its dialogs |
+| Desktop app build, launch and quit, with stand-in tools | The app showing the real tools; clicking through its dialogs; the loading screen, added after that build |
 | The three image workflows on CPU, with an older ComfyUI (reduced size and steps) | The same workflows on ComfyUI v0.43.0 |
 | A real offline Demucs split, and voice profiles, on CPU; the song and stem checks on synthetic audio | Demucs on Metal; ACE-Step (never started), so also the Pro music test |
 | Reveal node's masks and frames, calculated without ComfyUI | All six video workflows (compared with v0.43.0 source only) |
