@@ -59,7 +59,8 @@ Each tool has its own environment, so ComfyUI's torch 2.15 and ACE-Step's torch 
 - **`--use-split-cross-attention` is set** because of a [reported black-video fix](https://github.com/Comfy-Org/ComfyUI/issues/15818). This is community evidence, not official documentation.
 - **`PYTORCH_ENABLE_MPS_FALLBACK` is not set,** so that unsupported operations fail visibly.
 - **Demucs weights use the safetensors files from Hugging Face.** The older pickled weights on another host are avoided, and the install fails if they are ever used.
-- **Instrumental stem.** Demucs's `other` stem is not an instrumental, so the page adds drums, bass and other together.
+- **Instrumental stem.** Demucs's `other` stem is not an instrumental, so the page adds every non-vocal stem together. It also shows `other` on its own.
+- **Two Demucs models.** `htdemucs_ft` (4 stems) is the default and the better one. `htdemucs_6s` adds guitar and piano at lower quality, from the same account, 55 MB, pinned by commit and checksum like the first. Both are tested offline at install.
 
 ## Model licenses
 
@@ -77,7 +78,7 @@ Read the original license before commercial use. This is a summary, not legal ad
 | [Scribble SDXL ControlNet](https://huggingface.co/xinsir/controlnet-scribble-sdxl-1.0) | Apache-2.0 | |
 | [MistoLine](https://huggingface.co/TheMistoAI/MistoLine) | OpenRAIL++ | |
 | [ACE-Step 1.5 models](https://huggingface.co/ACE-Step) | MIT | |
-| [Demucs htdemucs_ft](https://huggingface.co/adefossez/HTDemucs-ft) | Unclear | **[Upstream says](https://github.com/adefossez/demucs/commit/829d21890023800713e5dd231c67e43ecc06069b) the code is MIT but the weights' license is not clear** |
+| [Demucs htdemucs_ft](https://huggingface.co/adefossez/HTDemucs-ft) and [htdemucs_6s](https://huggingface.co/adefossez/HTDemucs-6s) | Unclear | **[Upstream says](https://github.com/adefossez/demucs/commit/829d21890023800713e5dd231c67e43ecc06069b) the code is MIT but the weights' license is not clear** |
 | [Wan 2.2](https://huggingface.co/Comfy-Org/Wan-2.2) (Pro flows, optional) | Apache-2.0 | |
 
 ## Updating versions

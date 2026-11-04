@@ -7,6 +7,7 @@
 #   ./milestone3-pro.sh            the test: a 2-minute song with vocals, split and checked
 #   ./milestone3-pro.sh --test     the same
 #   ./milestone3-pro.sh --samples  three full songs in different styles, to judge the quality
+#   ./milestone3-pro.sh --check    check the last test song again, without rendering a new one
 #   ./milestone3-pro.sh --verify   check the installed models against their checksums
 set -euo pipefail
 . "$(dirname "$0")/lib/common.sh"
@@ -87,6 +88,18 @@ case "${1:-}" in
     open "$TEST_OUT"
     [ "$status" = 0 ] || die "A check failed. See 'Music' and 'Stems and voices' in docs/TROUBLESHOOTING.md."
     show_next "Every check passed. The song, its stems and its settings are in $TEST_OUT."
+    ;;
+  --check)
+    preflight 5
+    require_milestone1
+    require_milestone3
+    song="$TEST_OUT/indie_folk_vocal.wav"
+    [ -f "$song" ] || die "There is no test song yet. Run ./milestone3-pro.sh first."
+    say "Checking the last test song again, and splitting it into stems"
+    check_song "$song" "$TEST_OUT/stems" \
+      || die "A check failed. See 'Music' and 'Stems and voices' in docs/TROUBLESHOOTING.md."
+    check_demucs_source
+    show_next "Every check passed for $song."
     ;;
   --samples)
     prepare 10 milestone3-pro-samples "$SAMPLES_OUT"

@@ -101,6 +101,7 @@ Metal failures are often silent. A video can finish with no error and still be w
 | Training stops or the loss shows NaN *(reported)* | Half precision can fail on Metal. The reported workaround is a terminal command, so do this for the owner: preprocess at full precision, then point the Train tab at the result. Restart the app between stages |
 | `cannot decode audio through FFmpeg` during install | Keep `ffmpeg@8`. torchcodec 0.10 cannot load FFmpeg 9, which is what the plain `ffmpeg` formula installs |
 | `milestone3-pro.sh`: the song did not render | Read the newest `milestone3-pro-*.log` in `~/MacAIStudio/logs`. The models load the same way as the Music tab, so if the tab opens, they load; the first load takes minutes |
+| `No dropouts` failed with "longest silence" and a few seconds, every other line `PASS` | Fixed on 2026-11-04. The old check also counted the silence after the last note, which ACE-Step adds when a song ends a little before the asked length. Run `git pull`, then `./milestone3-pro.sh --check` to check the same song again without rendering it. The new check names the time of any real gap |
 | A Pro check fails on `Song level`, `Dynamics` or `No dropouts` | Listen to the file before blaming the model. The script uses fixed seeds, so run it again: a repeat failure is real. Then see the Metal rows above |
 
 **Security note.** ACE-Step's lock pins Gradio 6.2.0, which has published advisories, fixed in 6.16.0. The studio keeps the upstream pin because changing it is untested. To limit exposure, the page listens only on this Mac, and neither `--share` nor `--enable-api` is used. Do not add them.
@@ -112,6 +113,8 @@ Metal failures are often silent. A video can finish with no error and still be w
 | `Demucs used weights from outside the verified cache` | Stop. It tried an unverified source. Run `./milestone3.sh` again |
 | Split fails on Metal | Set `export DEMUCS_DEVICE=cpu` in `~/MacAIStudio/runtime/services/30-stems-voices.conf`. It is slower |
 | Can't find the stems | **My Files**, then `stems/<song name>` |
+| Guitar or piano stem is poor, or empty | Expected: the 6-stem model is weaker than the 4-stem one, and its piano stem is the weakest. Keyboards, synths and strings stay in **Other** with either choice; no Demucs model separates them |
+| `6 stems` fails but `4 stems` works | The second model is missing. Run `./milestone3.sh` again; it downloads only what is missing |
 | Logic Pro level seems very high | The stems are 32-bit float with no limiting, to keep their relative levels. Lower the track fader |
 | Voices are not one identical singer | A known limit. A profile is a description, not a voice model |
 | `Stems add up to the song` fails in the Pro test | The split ran but did not rebuild the song. Run `DEMUCS_DEVICE=cpu ./milestone3-pro.sh`; if that passes, Metal is the cause, and the fix above applies to the page too |

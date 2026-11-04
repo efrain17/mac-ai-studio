@@ -31,12 +31,18 @@ def rms(data):
     return float(np.sqrt(np.mean(np.square(data, dtype=np.float64)))) if data.size else 0.0
 
 
-def longest_run(flags):
-    best = current = 0
-    for flag in flags:
+def longest_run_at(flags):
+    """Length of the longest run of True, and the index where it ends (0, -1 if none)."""
+    best, best_end, current = 0, -1, 0
+    for index, flag in enumerate(flags):
         current = current + 1 if flag else 0
-        best = max(best, current)
-    return best
+        if current > best:
+            best, best_end = current, index
+    return best, best_end
+
+
+def clock(seconds):
+    return f"{int(seconds) // 60}:{seconds % 60:04.1f}"
 
 
 def resample(data, old_rate, new_rate):
@@ -92,12 +98,29 @@ def check_song(path, report, expect_duration):
         correlation = 1.0
     report.check("Real stereo", correlation < 0.995, f"left/right correlation {correlation:.3f}")
 
-    # Dropouts: 50 ms windows under -60 dBFS, in a row, anywhere in the song.
+    # Dropouts: 50 ms windows under -60 dBFS, in a row, between the first and last sound. Silence
+    # before the first note or after the last one is not a dropout: ACE-Step fills the asked length,
+    # so a song that ends a few seconds early is followed by silence (seen on the Mac, 2026-11-04).
     window = rate // 20
     frames = mono[: len(mono) // window * window].reshape(-1, window)
     quiet = np.sqrt(np.mean(np.square(frames), axis=1)) < 10 ** (-60 / 20)
-    longest = longest_run(quiet) * window / rate
-    report.check("No dropouts", longest <= 3.0, f"longest silence {longest:.2f} s")
+    sound = np.flatnonzero(~quiet)
+    if sound.size:
+        first, last = int(sound[0]), int(sound[-1])
+        run, end = longest_run_at(quiet[first:last + 1])
+        longest = run * window / rate
+        at = (first + end - run + 1) * window / rate
+        where = f" at {clock(at)}" if run else ""
+        report.check("No dropouts", longest <= 3.0, f"longest gap inside the song {longest:.2f} s{where}")
+        lead = first * window / rate
+        tail = (len(quiet) - 1 - last) * window / rate
+        span = (last + 1 - first) * window / rate
+        total = len(quiet) * window / rate
+        report.check("Music fills the file", span >= 0.85 * total,
+                     f"sound from {clock(lead)} to {clock(lead + span)}, "
+                     f"{lead:.1f} s of silence before and {tail:.1f} s after")
+    else:
+        report.check("No dropouts", False, "the whole file is silent")
 
     # Dynamics: a song has quieter and louder passages; a loop or a drone does not.
     levels = [db(rms(mono[start:start + rate])) for start in range(0, len(mono) - rate, rate)]
@@ -118,7 +141,7 @@ def check_song(path, report, expect_duration):
 
 def check_stems(song, rate, stems_dir, report, expect_vocals):
     stems = {}
-    for name in ("vocals", "drums", "bass", "instrumental"):
+    for name in ("vocals", "drums", "bass", "other", "instrumental"):
         path = stems_dir / f"{name}.wav"
         if not path.exists():
             report.check(f"Stem {name}", False, "missing")
@@ -127,7 +150,7 @@ def check_stems(song, rate, stems_dir, report, expect_vocals):
         stems[name] = (data, stem_rate)
         report.check(f"Stem {name}", data.shape[1] == 2 and rms(data) > 0,
                      f"{len(data) / stem_rate:.1f} s at {stem_rate} Hz, RMS {db(rms(data)):.1f} dBFS")
-    if len(stems) < 4:
+    if len(stems) < 5:
         return
 
     rates = {stem_rate for _, stem_rate in stems.values()}
