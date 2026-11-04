@@ -35,6 +35,7 @@ Items marked *(reported)* come from upstream issue trackers and have not been re
 | --- | --- |
 | Music fails after an update, mentioning FFmpeg | `ffmpeg@8` changed. Check `~/MacAIStudio/logs/20-music.log` |
 | Every tool fails with a Python error | `python@3.12` changed. Run the milestone scripts again to rebuild the environments |
+| The Chat tab stops working after an update | LM Studio or AnythingLLM changed. Open each app once from Applications, then run `./milestone4.sh --test`. If the `lms` tool is gone, run `./milestone4.sh` again |
 | A tool upgrade keeps breaking the studio | Hold it with `brew pin <name>` until a fix is available |
 | Other programs changed after an update | Homebrew can also upgrade what depends on these tools. Check them with `brew list --versions` |
 
@@ -118,3 +119,22 @@ Metal failures are often silent. A video can finish with no error and still be w
 | Logic Pro level seems very high | The stems are 32-bit float with no limiting, to keep their relative levels. Lower the track fader |
 | Voices are not one identical singer | A known limit. A profile is a description, not a voice model |
 | `Stems add up to the song` fails in the Pro test | The split ran but did not rebuild the song. Run `DEMUCS_DEVICE=cpu ./milestone3-pro.sh`; if that passes, Metal is the cause, and the fix above applies to the page too |
+
+## Chat assistant
+
+| Problem | Fix |
+| --- | --- |
+| The Chat tab says it did not start | Open `~/MacAIStudio/logs/40-chat.log`. `Port 3001 is used by another program` means something else holds the port AnythingLLM needs; quit that program. Otherwise open AnythingLLM once from Applications, then try the tab again |
+| `LM Studio opened. Go through its welcome screen` and the script waits | Finish LM Studio's first screen and leave the app open. It then installs its `lms` command, and the script continues |
+| `LM Studio does not list the model yet` | Quit and reopen LM Studio; its model list is read at start. The files are linked into `~/.lmstudio/models` |
+| Every answer says the model is not set, or the chat fails at once | The one-time choice in AnythingLLM's settings is missing: **AI Providers > LLM > LM Studio**, model `gpt-oss-120b`. See Milestone 4 in [MANUAL_TESTS.md](MANUAL_TESTS.md) |
+| The first answer takes minutes | Normal: LM Studio loads 63 GB on the first question, and again after the Chat tab was closed. Later answers start within seconds |
+| Answers do not cite the documents, or the workspace is empty | Run `./milestone4.sh --import` with the Chat tab closed. It adds any missing file. `AnythingLLM has not been opened yet` means the Chat tab must be opened once first |
+| `@agent` does nothing, or says it has no tools | Open AnythingLLM's **Agent Skills** page once; it reads the tool settings then. The file is `~/Library/Application Support/anythingllm-desktop/storage/plugins/anythingllm_mcp_servers.json` |
+| The agent cannot render: `ComfyUI did not start` | The tools start ComfyUI the way the app does. See `~/MacAIStudio/logs/10-images.log`, and the Images section above |
+| Out of memory while rendering from the chat | The chat model (63 GB) and a video model are loaded together. Close the Chat tab, which unloads the model, before long video renders, or render images only from the chat |
+| AnythingLLM's own window appears | Normal. The Chat tab shows the same page; either can be used. Quitting Mac AI Studio quits it |
+| `The analysis failed` on the Analyze tab | The file is shorter than a second, or not an audio file. See `~/MacAIStudio/logs/30-stems-voices.log` |
+| LM Studio asks to update | Allowed; it is the same program the update script updates. Say no while you have a deadline |
+
+The assistant's reading material is in `~/MacAIStudio/knowledge`, one Markdown file per topic. It covers the studio's own guides, ComfyUI, LM Studio, AnythingLLM, Demucs, ACE-Step and the model cards, at the versions installed.

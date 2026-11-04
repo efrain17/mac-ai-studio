@@ -4,7 +4,7 @@ A 1.5 to 2 hour live session where the owner does the clicking. Use placeholder 
 
 ## Before the session
 
-- [ ] `./milestone4.sh` shows every line as `PASS`
+- [ ] `./milestone5.sh` shows every line as `PASS`
 - [ ] Open each tab once, so the models are loaded
 - [ ] Render one video ahead of time, because video is slow
 - [ ] Agree on how you will record. On a Mac, press Cmd+Shift+5 to record the screen, and choose a microphone under **Options**
@@ -20,9 +20,10 @@ Start recording first. Say the date and what the session covers.
 | 25 min | Images | Opens each style, changes a prompt, renders, finds the file |
 | 25 min | Video | Adds a sketch to the folder, runs a batch, runs sketch and fill |
 | 25 min | Music | Pastes lyrics, generates, tries the Temperature, Top-K and Top-P controls |
-| 10 min | Stems and voices | Splits a song, drags stems into a music app, saves a voice profile |
+| 10 min | Stems and voices | Splits a song, reads its tempo and key with Analyze, drags stems into a music app, saves a voice profile |
 | 10 min | Training a LoRA | Walks through the page and runs a small batch. Explain the known limits |
-| 15 min | Independent test | Runs one custom prompt alone while you stay online and quiet |
+| 10 min | Chat | Asks the assistant how to do something from the session, then, with `@agent`, asks it to render one image |
+| 10 min | Independent test | Runs one custom prompt alone while you stay online and quiet |
 
 ## Daily rules to teach
 
@@ -33,6 +34,7 @@ Start recording first. Say the date and what the session covers.
 5. No internet is needed.
 6. To update, quit the app and double-click **Update Mac AI Studio.command**. Do it when you have no deadline, because new versions are not tested first.
 7. If something fails, quit and reopen the app first.
+8. Not sure how to do something? Ask the Chat tab. It has read the studio's guides.
 
 ## Closing the session
 
@@ -40,4 +42,4 @@ The owner must complete one custom test prompt without help.
 
 - [ ] Independent test passed
 - [ ] Recording saved, played back and delivered
-- [ ] `docs/TROUBLESHOOTING.md` handed over
+- [ ] `docs/TROUBLESHOOTING.md` and `docs/UPDATING.md` handed over

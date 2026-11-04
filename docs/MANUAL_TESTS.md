@@ -26,7 +26,7 @@ It renders three images at full size. Each line should say `PASS`, and the sampl
 
 | # | Do this | Expect |
 | --- | --- | --- |
-| 1 | Open the app, wait for **Images & Video** | The ComfyUI editor appears in the app's own window, with no browser or Terminal. If a Templates window appears, close it |
+| 1 | Open the app, wait for **Images & Video (ComfyUI)** | The ComfyUI editor appears in the app's own window, with no browser or Terminal. If a Templates window appears, close it |
 | 2 | Open the Workflows panel (press `W` on the canvas) and the **Mac AI Studio** folder | The workflows are listed |
 | 3 | Open `01_gritty_graphic_novel`, press **Run** | An inked, high-contrast comic image |
 | 4 | Do the same with `02_photorealistic_human` | A photo-like person |
@@ -105,12 +105,12 @@ It splits a generated tone offline, and confirms that both pages answer.
 
 | # | Do this | Expect |
 | --- | --- | --- |
-| 1 | Open the **Music** tab. The first start can take several minutes while models load | ACE-Step's page, with the model already initialized |
+| 1 | Open the **Music (ACE-Step)** tab. The first start can take several minutes while models load | ACE-Step's page, with the model already initialized |
 | 2 | Paste the lyrics and style from the practice prompts, then generate | A song with vocals plays in the page |
 | 3 | At the top of the page, above the **Generation** tab, open **Settings**, then **LM Generation** | **LM Temperature** (default 0.85), **LM CFG Scale**, **LM Top-K** and **LM Top-P** are there |
 | 4 | Generate the same song with very different Temperature values | The results audibly differ |
 | 5 | Open the LoRA training page | Dataset and training settings are shown. See the note below |
-| 6 | Download the song, open **Stems & Voices > Split Stems**, drop it in, press **Split** | Vocals, Instrumental, Drums, Bass and Other players appear |
+| 6 | Download the song, open **Stems & Voices (Demucs) > Split Stems**, drop it in, press **Split** | Vocals, Instrumental, Drums, Bass and Other players appear |
 | 6b | Choose **6 stems**, press **Split** again | Guitar and Piano players appear as well. Expect the piano stem to be weak: that is the model's limit |
 | 7 | Press **My Files**, go to `stems`, and drag the WAV files into Logic Pro | They load as separate 32-bit float tracks and play in sync |
 | 8 | Open **Voice Profiles**, make and save a voice | It stays in the list after you quit and reopen the app |
@@ -146,10 +146,44 @@ Three full songs: indie folk with vocals, a cinematic score, upbeat pop with voc
 
 **Pass:** every line says `PASS`, each song sounds like a finished track, and the vocal stems are clean voices.
 
-## Milestone 4: live session
+## Milestone 4: chat assistant
+
+**Automatic check**
 
 ```bash
-./milestone4.sh
+./milestone4.sh --test
+```
+
+It checks the assistant's ComfyUI tools and the Analyze tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), and confirms the workspace holds the documents. Each line should say `PASS`.
+
+**First open, once**
+
+| # | Do this | Expect |
+| --- | --- | --- |
+| 1 | Open the app, open the **Chat (AnythingLLM)** tab. The first start takes a minute | AnythingLLM's page appears inside the app |
+| 2 | Open its settings (the wrench at the bottom left), then **AI Providers > LLM**. Choose **LM Studio**. The base URL is `http://127.0.0.1:1234/v1`; press the refresh button next to the model list and pick the model whose name contains `gpt-oss-120b`. Save | The provider is saved. AnythingLLM keeps this choice outside any file the installer may edit, so it is made once by hand |
+| 3 | Go back to the workspaces and open **Studio Help** | A workspace with the studio's documents attached (the paperclip count is above 30) |
+
+**By hand**
+
+| # | Do this | Expect |
+| --- | --- | --- |
+| 1 | In **Studio Help**, ask: *How do I split a song into stems?* | An answer that names the **Stems & Voices (Demucs)** tab and the Split button, with short steps, and citations under it. The first answer takes a minute or two while the model loads |
+| 2 | Ask: *Where are my finished files?* | `~/MacAIStudio/output` and the **My Files** button |
+| 3 | Ask: *What does the cfg setting in a KSampler do?* | An explanation drawn from the ComfyUI documentation |
+| 4 | Type `@agent` followed by: *Make a claymation image of a lighthouse in a storm.* Wait | The agent lists the workflows, runs `03_claymation`, and reports the file it saved. Press **My Files**: the image is there |
+| 5 | Ask the agent: *What are the newest files I made?* | A list of the latest files, newest first |
+| 6 | Open **Stems & Voices (Demucs) > Analyze**, drop in the test song, press **Analyze** | Tempo in BPM, the key, the length and the levels |
+| 7 | Open **LM Studio** from Applications, pick the gpt-oss model, open its Integrations (the plug icon) | `mac-ai-studio-comfyui` is listed, with the same tools |
+
+**Pass:** steps 1 to 3 answer from the documents with citations, step 4 produces an image, and step 6 shows a tempo and key.
+
+To check that it works offline, turn Wi-Fi off before step 1. LM Studio shows a notice that it cannot check for updates; everything else works the same.
+
+## Milestone 5: live session
+
+```bash
+./milestone5.sh
 ```
 
 Every line should say `PASS`. Then follow [TRAINING_SESSION.md](TRAINING_SESSION.md).
@@ -165,8 +199,9 @@ Test this on a spare Mac first, since new versions may break something.
 | 1 | Quit Mac AI Studio, then double-click **Update Mac AI Studio.command** | A Terminal window lists each tool being checked |
 | 2 | Wait for the end | Every check says `PASS`, then `All tools are up to date` |
 | 3 | Open Mac AI Studio and run one image | It renders as before |
+| 4 | Open the Chat tab and ask one question | It answers as before |
 
-**Pass:** the tools update with one double-click and the studio still works.
+**Pass:** the tools update with one double-click and the studio still works. The owner's version of these steps is [UPDATING.md](UPDATING.md).
 
 ## How to show it
 
@@ -178,4 +213,5 @@ A short, reliable order. Render the slow items before the meeting, and start one
 4. **Video:** play the Pro sketch-and-fill clip first, since it is the most striking, then show the folder batch.
 5. **Music:** play a generated song.
 6. **Stems:** split it, then drag the stems into Logic Pro.
-7. Press **My Files**, to show that everything is ordinary files on the Mac.
+7. **Chat:** ask the assistant how to do one of the steps above, then let it render one image with `@agent`.
+8. Press **My Files**, to show that everything is ordinary files on the Mac.

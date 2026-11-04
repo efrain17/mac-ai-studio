@@ -26,5 +26,7 @@ library_file="$HOME/Library/Application Support/StabilityMatrix/library.json"
 if [ -f "$library_file" ] && grep -q "$STUDIO_HOME" "$library_file"; then
   rm -f "$library_file"
 fi
+# The chat model was linked into LM Studio's model list; LM Studio and AnythingLLM themselves stay.
+rm -f "$HOME/.lmstudio/models/mlx-community/gpt-oss-120b-MXFP4-Q8"
 rm -rf "/Applications/Mac AI Studio.app" "$STUDIO_HOME"
-echo "Removed."
+echo "Removed. LM Studio, AnythingLLM and their settings stay; delete them from Applications if you do not want them."

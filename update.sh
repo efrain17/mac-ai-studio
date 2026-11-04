@@ -1,6 +1,7 @@
 #!/bin/bash
 # Updates every studio tool that comes from Homebrew, then checks that the studio still works.
 # ComfyUI, ACE-Step, Demucs, PyTorch and the models are not in Homebrew and stay as installed.
+# The plain-words version of all this is docs/UPDATING.md.
 set -euo pipefail
 . "$(dirname "$0")/lib/common.sh"
 
@@ -30,9 +31,9 @@ for name in $BREW_FORMULAS $BREW_MUSIC_FORMULAS; do
     brew upgrade --formula "$name" || warn "$name was not updated."
   fi
 done
-# These two are marked as updating themselves, which plain upgrades skip without this option.
+# Some of these are marked as updating themselves, which plain upgrades skip without this option.
 # shellcheck disable=SC2086
-for name in $BREW_CASKS; do
+for name in $BREW_CASKS $BREW_CHAT_CASKS; do
   if brew list --cask "$name" >/dev/null 2>&1; then
     brew upgrade --cask --greedy-auto-updates "$name" || warn "$name was not updated."
   fi
@@ -57,6 +58,11 @@ if [ -x "$STUDIO_HOME/ace-step/.venv/bin/python" ]; then
 fi
 if [ -x "$ENVS_DIR/stems-voices/bin/python" ]; then
   check "Stems: Python and Demucs" "$ENVS_DIR/stems-voices/bin/python" -c 'import demucs, gradio'
+fi
+if [ -f "$RUNTIME_DIR/services/40-chat.conf" ]; then
+  check "Analyze: librosa" "$ENVS_DIR/stems-voices/bin/python" -c 'import librosa'
+  check "Chat: LM Studio command line tool" test -x "$LMS"
+  check "Chat: AnythingLLM app" test -d "/Applications/AnythingLLM.app"
 fi
 
 if [ "$bad" != 0 ]; then
