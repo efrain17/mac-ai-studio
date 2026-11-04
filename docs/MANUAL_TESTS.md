@@ -107,7 +107,7 @@ It splits a generated tone offline, and confirms that both pages answer.
 | --- | --- | --- |
 | 1 | Open the **Music** tab. The first start can take several minutes while models load | ACE-Step's page, with the model already initialized |
 | 2 | Paste the lyrics and style from the practice prompts, then generate | A song with vocals plays in the page |
-| 3 | Open **Generation > Advanced > LM Parameters** | **LM Temperature**, **LM Top-K** and **LM Top-P** are there |
+| 3 | At the top of the page, above the **Generation** tab, open **Settings**, then **LM Generation** | **LM Temperature** (default 0.85), **LM CFG Scale**, **LM Top-K** and **LM Top-P** are there |
 | 4 | Generate the same song with very different Temperature values | The results audibly differ |
 | 5 | Open the LoRA training page | Dataset and training settings are shown. See the note below |
 | 6 | Download the song, open **Stems & Voices > Split Stems**, drop it in, press **Split** | Vocal, Drums, Bass and Instrumental players appear |
