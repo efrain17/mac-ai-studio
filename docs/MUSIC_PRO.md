@@ -31,6 +31,7 @@ The Pro test produces what the owner actually wants and checks it: a complete so
 | Dynamics | Second-by-second level varies by 3 dB or more | A loop or drone instead of a song |
 | Full bandwidth | Energy above 8 kHz at least -40 dB of the total | A muffled render |
 | Stem files, Stems match | Four stereo WAVs with equal rate and length | A failed or partial split |
+| Stem vocals, drums, bass, other, instrumental | Five stereo WAV files with sound in them | A stem the page did not write |
 | Stems add up to the song | Song minus (vocals + instrumental) at least 12 dB below the song | A split that did not rebuild the input |
 | Vocals were found | Vocal stem at least -20 dB relative to the song | Vocals lost in the instrumental |
 | Drums and bass are separate | Correlation under 0.9 | Stems that are copies of each other |

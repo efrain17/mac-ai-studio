@@ -113,6 +113,8 @@ Metal failures are often silent. A video can finish with no error and still be w
 | `Demucs used weights from outside the verified cache` | Stop. It tried an unverified source. Run `./milestone3.sh` again |
 | Split fails on Metal | Set `export DEMUCS_DEVICE=cpu` in `~/MacAIStudio/runtime/services/30-stems-voices.conf`. It is slower |
 | Can't find the stems | **My Files**, then `stems/<song name>` |
+| Guitar or piano stem is poor, or empty | Expected: the 6-stem model is weaker than the 4-stem one, and its piano stem is the weakest. Keyboards, synths and strings stay in **Other** with either choice; no Demucs model separates them |
+| `6 stems` fails but `4 stems` works | The second model is missing. Run `./milestone3.sh` again; it downloads only what is missing |
 | Logic Pro level seems very high | The stems are 32-bit float with no limiting, to keep their relative levels. Lower the track fader |
 | Voices are not one identical singer | A known limit. A profile is a description, not a voice model |
 | `Stems add up to the song` fails in the Pro test | The split ran but did not rebuild the song. Run `DEMUCS_DEVICE=cpu ./milestone3-pro.sh`; if that passes, Metal is the cause, and the fix above applies to the page too |

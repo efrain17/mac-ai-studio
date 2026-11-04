@@ -15,20 +15,23 @@ STEMS_ENV="$ENVS_DIR/stems-voices"
 # Demucs looks for its weights through the Hugging Face cache and, if that fails, silently
 # downloads older ones from another host. This stops that from ever going unnoticed.
 demucs_offline_test() {
-  local work tone
+  local work tone model
   work="$(mktemp -d "$TMPDIR/demucs.XXXXXX")"
   tone="$work/tone.wav"
   "$BREW_FFMPEG/bin/ffmpeg" -hide_banner -loglevel error -f lavfi \
     -i "sine=frequency=220:duration=8" -ac 2 -ar 44100 "$tone"
-  HF_HUB_OFFLINE=1 PATH="$BREW_FFMPEG/bin:$PATH" "$STEMS_ENV/bin/python" -m demucs \
-    -n "$DEMUCS_MODEL" -d mps --float32 --clip-mode none -o "$work/out" "$tone" \
-    || die "Demucs could not split the test tone."
-  [ -f "$work/out/$DEMUCS_MODEL/tone/vocals.wav" ] || die "Demucs produced no stems."
+  for model in "$DEMUCS_MODEL" "$DEMUCS_MODEL_6S"; do
+    HF_HUB_OFFLINE=1 PATH="$BREW_FFMPEG/bin:$PATH" "$STEMS_ENV/bin/python" -m demucs \
+      -n "$model" -d mps --float32 --clip-mode none -o "$work/out" "$tone" \
+      || die "Demucs ($model) could not split the test tone."
+    [ -f "$work/out/$model/tone/vocals.wav" ] || die "Demucs ($model) produced no stems."
+  done
+  [ -f "$work/out/$DEMUCS_MODEL_6S/tone/guitar.wav" ] || die "The 6-stem model produced no guitar stem."
   if [ -n "$(ls -A "$TORCH_HOME/hub/checkpoints" 2>/dev/null)" ]; then
     die "Demucs used weights from outside the verified cache. See $TORCH_HOME/hub/checkpoints."
   fi
   rm -rf "$work"
-  echo "Demucs split a test tone offline with the verified weights."
+  echo "Demucs split a test tone offline with the verified weights, with 4 and with 6 stems."
 }
 
 case "${1:-}" in
@@ -140,29 +143,36 @@ make_venv "$STEMS_ENV"
 "$STEMS_ENV/bin/python" -m pip install --require-hashes --only-binary=:all: \
   -r "$REPO_DIR/locks/stems-voices-macos-arm64.lock"
 
-say "Demucs weights ($DEMUCS_MODEL)"
-"$STEMS_ENV/bin/python" - "$DEMUCS_MODEL_REPO" "$DEMUCS_MODEL_COMMIT" "$HF_HOME" <<'PY'
+say "Demucs weights ($DEMUCS_MODEL, and $DEMUCS_MODEL_6S for the 6-stem choice)"
+"$STEMS_ENV/bin/python" - "$HF_HOME" \
+  "$DEMUCS_MODEL_REPO" "$DEMUCS_MODEL_COMMIT" "$DEMUCS_MODEL_6S_REPO" "$DEMUCS_MODEL_6S_COMMIT" <<'PY'
 import hashlib
 import pathlib
 import sys
 from huggingface_hub import snapshot_download
 
-repo, commit, hf_home = sys.argv[1:]
+hf_home = sys.argv[1]
 expected = {
-    "f7e0c4bc.safetensors": "2c85ab3c62dd6edd8e0b965e38b16fd1cdde357cc25de6b6bc9ce7c83f60925f",
-    "d12395a8.safetensors": "5b01a97567ae9a3178a6236fb520251045c03eb8834bc8c24a4eec11d6c8fb56",
-    "92cfc3b6.safetensors": "a241863551f30d01c42bd7b97da40839922ead3acb0f1fcab25682f55b4eeb59",
-    "04573f0d.safetensors": "68854b0d7c2b3274723b5761f6fd9f5aec5f1bcd3f0de7c1669546fdb7871b7c",
+    "adefossez/HTDemucs-ft": {
+        "f7e0c4bc.safetensors": "2c85ab3c62dd6edd8e0b965e38b16fd1cdde357cc25de6b6bc9ce7c83f60925f",
+        "d12395a8.safetensors": "5b01a97567ae9a3178a6236fb520251045c03eb8834bc8c24a4eec11d6c8fb56",
+        "92cfc3b6.safetensors": "a241863551f30d01c42bd7b97da40839922ead3acb0f1fcab25682f55b4eeb59",
+        "04573f0d.safetensors": "68854b0d7c2b3274723b5761f6fd9f5aec5f1bcd3f0de7c1669546fdb7871b7c",
+    },
+    "adefossez/HTDemucs-6s": {
+        "5c90dfd2.safetensors": "d2a1745f0744721f6b8ca5bf469b67c651ea5ed1b52998cab033b2158609d411",
+    },
 }
-snapshot = pathlib.Path(snapshot_download(repo, revision=commit))
-for name, digest in expected.items():
-    if hashlib.sha256((snapshot / name).read_bytes()).hexdigest() != digest:
-        sys.exit(f"Checksum mismatch for {name}")
-# Demucs asks for the "main" revision by name; offline, that name must point at the pinned commit.
-refs = pathlib.Path(hf_home) / "hub" / ("models--" + repo.replace("/", "--")) / "refs"
-refs.mkdir(parents=True, exist_ok=True)
-(refs / "main").write_text(commit)
-print("Weights verified at", commit[:10])
+for repo, commit in zip(sys.argv[2::2], sys.argv[3::2]):
+    snapshot = pathlib.Path(snapshot_download(repo, revision=commit))
+    for name, digest in expected[repo].items():
+        if hashlib.sha256((snapshot / name).read_bytes()).hexdigest() != digest:
+            sys.exit(f"Checksum mismatch for {repo} {name}")
+    # Demucs asks for the "main" revision by name; offline, that name must point at the pinned commit.
+    refs = pathlib.Path(hf_home) / "hub" / ("models--" + repo.replace("/", "--")) / "refs"
+    refs.mkdir(parents=True, exist_ok=True)
+    (refs / "main").write_text(commit)
+    print(repo, "verified at", commit[:10])
 PY
 
 say "Stem splitter offline test"

@@ -110,7 +110,8 @@ It splits a generated tone offline, and confirms that both pages answer.
 | 3 | At the top of the page, above the **Generation** tab, open **Settings**, then **LM Generation** | **LM Temperature** (default 0.85), **LM CFG Scale**, **LM Top-K** and **LM Top-P** are there |
 | 4 | Generate the same song with very different Temperature values | The results audibly differ |
 | 5 | Open the LoRA training page | Dataset and training settings are shown. See the note below |
-| 6 | Download the song, open **Stems & Voices > Split Stems**, drop it in, press **Split** | Vocal, Drums, Bass and Instrumental players appear |
+| 6 | Download the song, open **Stems & Voices > Split Stems**, drop it in, press **Split** | Vocals, Instrumental, Drums, Bass and Other players appear |
+| 6b | Choose **6 stems**, press **Split** again | Guitar and Piano players appear as well. Expect the piano stem to be weak: that is the model's limit |
 | 7 | Press **My Files**, go to `stems`, and drag the WAV files into Logic Pro | They load as separate 32-bit float tracks and play in sync |
 | 8 | Open **Voice Profiles**, make and save a voice | It stays in the list after you quit and reopen the app |
 | 9 | Copy its description into the Music tab's caption, then generate | The vocal follows the description's style |
@@ -131,7 +132,7 @@ Quit Mac AI Studio first; the script stops the tools anyway, because the Music t
 | --- | --- |
 | Song format, Song length, Song level, No clipping | Stereo at 48 kHz, within 15% of the asked length, at a normal level, without distortion |
 | Real stereo, No dropouts, Music fills the file, Dynamics, Full bandwidth | Not mono in disguise, no silent gaps inside the song, music for most of the file, quieter and louder passages, highs present |
-| Stem vocals, drums, bass, instrumental; Stems match | Four WAV files of the same length and rate |
+| Stem vocals, drums, bass, other, instrumental; Stems match | Five WAV files of the same length and rate |
 | Stems add up to the song, Vocals were found, Drums and bass are separate | The split is real: the stems rebuild the song, and the voice landed in the vocal stem |
 | Voice profiles | Describe, save, reload and delete work, in a temporary folder |
 

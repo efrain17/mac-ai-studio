@@ -20,7 +20,16 @@ STUDIO_HOME = pathlib.Path(os.environ["STUDIO_HOME"])
 STEMS_DIR = STUDIO_HOME / "output" / "stems"
 PROFILES_FILE = STUDIO_HOME / "output" / "voice_profiles.json"
 DEMUCS_MODEL = os.environ.get("DEMUCS_MODEL", "htdemucs_ft")
+DEMUCS_MODEL_6S = os.environ.get("DEMUCS_MODEL_6S", "htdemucs_6s")
 DEMUCS_DEVICE = os.environ.get("DEMUCS_DEVICE", "mps")
+# What each choice produces, in the order the page shows them. "other" is what the model could
+# not name: with 4 stems it holds guitars, keys, synths and strings together.
+STEM_CHOICES = {
+    "4 stems: vocals, drums, bass, other (best quality)": (DEMUCS_MODEL, ("vocals", "drums", "bass", "other")),
+    "6 stems: adds guitar and piano (piano is weak)": (DEMUCS_MODEL_6S, ("vocals", "drums", "bass", "guitar", "piano", "other")),
+}
+DEFAULT_CHOICE = next(iter(STEM_CHOICES))
+ALL_STEMS = ("vocals", "instrumental", "drums", "bass", "other", "guitar", "piano")
 
 AGES = ["child", "teenager", "young adult", "adult", "middle-aged", "elderly"]
 GENDERS = ["female", "male", "androgynous"]
@@ -36,19 +45,23 @@ def safe_name(name):
 # ---- Stems ----------------------------------------------------------------------------------
 
 
-def split_file(source, target, progress=None):
-    """Splits one song into vocals, drums, bass and instrumental WAV files inside TARGET.
+def split_file(source, target, progress=None, choice=DEFAULT_CHOICE):
+    """Splits one song into WAV stems inside TARGET: the model's stems plus an instrumental.
 
     Returns the written paths by stem name. The page and the Pro test both call this, so a test
     pass means the page's own split works.
     """
+    model, stems = STEM_CHOICES[choice]
     report = progress or (lambda fraction, desc=None: None)
     target.mkdir(parents=True, exist_ok=True)
+    for stale in ALL_STEMS:
+        # A 4-stem split after a 6-stem one must not leave the old guitar and piano behind.
+        (target / f"{stale}.wav").unlink(missing_ok=True)
     report(0.05, desc="Splitting the song. This can take several minutes.")
     with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as work:
         # Float output with no clip handling keeps the stems' relative levels exact.
         command = [
-            sys.executable, "-m", "demucs", "-n", DEMUCS_MODEL, "-d", DEMUCS_DEVICE,
+            sys.executable, "-m", "demucs", "-n", model, "-d", DEMUCS_DEVICE,
             "--float32", "--clip-mode", "none", "-o", work, "--filename", "{stem}.{ext}",
             str(source),
         ]
@@ -57,18 +70,17 @@ def split_file(source, target, progress=None):
             raise RuntimeError(result.stdout + result.stderr)
 
         report(0.9, desc="Writing the WAV files")
-        produced = pathlib.Path(work) / DEMUCS_MODEL
+        produced = pathlib.Path(work) / model
         written = {}
         instrumental = None
         samplerate = None
-        for stem in ("vocals", "drums", "bass", "other"):
+        for stem in stems:
             data, samplerate = sf.read(produced / f"{stem}.wav", dtype="float32", always_2d=True)
             if stem != "vocals":
                 instrumental = data if instrumental is None else instrumental + data
-            if stem != "other":
-                path = target / f"{stem}.wav"
-                sf.write(path, data, samplerate, subtype="FLOAT")
-                written[stem] = str(path)
+            path = target / f"{stem}.wav"
+            sf.write(path, data, samplerate, subtype="FLOAT")
+            written[stem] = str(path)
         # Demucs's "other" is only what remains, so the instrumental is the sum of all non-vocals.
         path = target / "instrumental.wav"
         sf.write(path, instrumental.astype(np.float32), samplerate, subtype="FLOAT")
@@ -76,18 +88,20 @@ def split_file(source, target, progress=None):
     return written
 
 
-def split_stems(audio_path, progress=gr.Progress()):
+def split_stems(audio_path, choice, progress=gr.Progress()):
     if not audio_path:
         raise gr.Error("Add a song first.")
     source = pathlib.Path(audio_path)
     target = STEMS_DIR / safe_name(source.stem)
     try:
-        written = split_file(source, target, progress)
+        written = split_file(source, target, progress, choice or DEFAULT_CHOICE)
     except RuntimeError as error:
         print(error, flush=True)
         raise gr.Error("The split failed. See the logs folder.") from error
     message = f"Saved to {target}. Drag the WAV files from that folder into your audio software."
-    return written["vocals"], written["drums"], written["bass"], written["instrumental"], message
+    # Players for stems this choice did not produce are hidden.
+    players = [gr.update(value=written.get(stem), visible=stem in written) for stem in ALL_STEMS]
+    return [*players, message]
 
 
 # ---- Voice profiles -------------------------------------------------------------------------
@@ -145,17 +159,27 @@ def delete_profile(name):
 def build():
     with gr.Blocks(title="Stems and Voices", analytics_enabled=False) as page:
         with gr.Tab("Split Stems"):
-            gr.Markdown("Drop in a song and press **Split**. You get separate WAV files.")
+            gr.Markdown(
+                "Drop in a song and press **Split**. You get separate WAV files. **Other** is "
+                "everything the model could not name: guitars, keys, synths and strings. The "
+                "6-stem choice pulls guitar and piano out of it, with lower quality overall."
+            )
             song = gr.Audio(label="Song", type="filepath", sources=["upload"])
+            choice = gr.Radio(list(STEM_CHOICES), value=DEFAULT_CHOICE, label="Stems")
             split = gr.Button("Split", variant="primary")
             status = gr.Markdown()
+            players = {}
             with gr.Row():
-                vocals = gr.Audio(label="Vocals", interactive=False)
-                instrumental = gr.Audio(label="Instrumental", interactive=False)
+                players["vocals"] = gr.Audio(label="Vocals", interactive=False)
+                players["instrumental"] = gr.Audio(label="Instrumental", interactive=False)
             with gr.Row():
-                drums = gr.Audio(label="Drums", interactive=False)
-                bass = gr.Audio(label="Bass", interactive=False)
-            split.click(split_stems, song, [vocals, drums, bass, instrumental, status])
+                players["drums"] = gr.Audio(label="Drums", interactive=False)
+                players["bass"] = gr.Audio(label="Bass", interactive=False)
+            with gr.Row():
+                players["other"] = gr.Audio(label="Other", interactive=False)
+                players["guitar"] = gr.Audio(label="Guitar", interactive=False, visible=False)
+                players["piano"] = gr.Audio(label="Piano", interactive=False, visible=False)
+            split.click(split_stems, [song, choice], [*(players[s] for s in ALL_STEMS), status])
 
         with gr.Tab("Voice Profiles"):
             gr.Markdown(

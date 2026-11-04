@@ -141,7 +141,7 @@ def check_song(path, report, expect_duration):
 
 def check_stems(song, rate, stems_dir, report, expect_vocals):
     stems = {}
-    for name in ("vocals", "drums", "bass", "instrumental"):
+    for name in ("vocals", "drums", "bass", "other", "instrumental"):
         path = stems_dir / f"{name}.wav"
         if not path.exists():
             report.check(f"Stem {name}", False, "missing")
@@ -150,7 +150,7 @@ def check_stems(song, rate, stems_dir, report, expect_vocals):
         stems[name] = (data, stem_rate)
         report.check(f"Stem {name}", data.shape[1] == 2 and rms(data) > 0,
                      f"{len(data) / stem_rate:.1f} s at {stem_rate} Hz, RMS {db(rms(data)):.1f} dBFS")
-    if len(stems) < 4:
+    if len(stems) < 5:
         return
 
     rates = {stem_rate for _, stem_rate in stems.values()}
