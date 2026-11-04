@@ -1,6 +1,6 @@
 #!/bin/bash
 # Starts and stops the studio's local tools. The desktop app calls this; it also works by hand:
-#   services.sh list | start <id> | stop <id> | stop-all | status | open-models | open-outputs
+#   services.sh list | start <id> | stop <id> | stop-all | status | open-models | open-outputs | open-logs
 #
 # A tool counts as running only if this script started it (matching pid and process start time).
 # Another program on a port, such as a separate ComfyUI on 8188, is never touched or reused.
@@ -51,13 +51,20 @@ service_running() {
 
 service_url() { echo "http://127.0.0.1:$(cat "$RUN_DIR/$1.port")${SERVICE_PATH:-/}"; }
 
+# One JSON object per tool, for the app's tabs and its loading screen. Titles and hints must
+# not contain double quotes.
 cmd_list() {
   local file first=1
   printf '['
   for file in "$SERVICE_DIR"/*.conf; do
     [ -f "$file" ] || continue
-    # shellcheck disable=SC1090
-    ( . "$file"; [ "$first" = 1 ] || printf ','; printf '{"id":"%s","title":"%s"}' "$SERVICE_ID" "$SERVICE_TITLE" )
+    (
+      # shellcheck disable=SC1090
+      . "$file"
+      [ "$first" = 1 ] || printf ','
+      printf '{"id":"%s","title":"%s","hint":"%s","timeout":%d}' \
+        "$SERVICE_ID" "$SERVICE_TITLE" "${SERVICE_START_HINT:-}" "${SERVICE_START_TIMEOUT:-180}"
+    )
     first=0
   done
   printf ']\n'
@@ -162,5 +169,6 @@ case "${1:-}" in
   status) cmd_status ;;
   open-models) cmd_open_models ;;
   open-outputs) mkdir -p "$OUTPUT_DIR"; open "$OUTPUT_DIR" ;;
-  *) fail "Usage: services.sh list|start <id>|stop <id>|stop-all|status|open-models|open-outputs" ;;
+  open-logs) open "$LOG_DIR" ;;
+  *) fail "Usage: services.sh list|start <id>|stop <id>|stop-all|status|open-models|open-outputs|open-logs" ;;
 esac
