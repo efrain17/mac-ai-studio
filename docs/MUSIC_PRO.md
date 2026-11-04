@@ -26,7 +26,8 @@ The Pro test produces what the owner actually wants and checks it: a complete so
 | Song level | RMS between -30 and -6 dBFS, peak above -6 dBFS | A near-silent or wrongly scaled render |
 | No clipping | Under 0.1% of samples at full scale | Distortion |
 | Real stereo | Left/right correlation under 0.995 | Mono in a stereo file |
-| No dropouts | No silence over 3 seconds | Gaps from a failed decode |
+| No dropouts | No silence over 3 seconds between the first and last sound | Gaps from a failed decode |
+| Music fills the file | Sound covers at least 85% of the file | A song that stops long before the length it was asked for |
 | Dynamics | Second-by-second level varies by 3 dB or more | A loop or drone instead of a song |
 | Full bandwidth | Energy above 8 kHz at least -40 dB of the total | A muffled render |
 | Stem files, Stems match | Four stereo WAVs with equal rate and length | A failed or partial split |

@@ -130,7 +130,7 @@ Quit Mac AI Studio first; the script stops the tools anyway, because the Music t
 | Check | What it means |
 | --- | --- |
 | Song format, Song length, Song level, No clipping | Stereo at 48 kHz, within 15% of the asked length, at a normal level, without distortion |
-| Real stereo, No dropouts, Dynamics, Full bandwidth | Not mono in disguise, no silent gaps, quieter and louder passages, highs present |
+| Real stereo, No dropouts, Music fills the file, Dynamics, Full bandwidth | Not mono in disguise, no silent gaps inside the song, music for most of the file, quieter and louder passages, highs present |
 | Stem vocals, drums, bass, instrumental; Stems match | Four WAV files of the same length and rate |
 | Stems add up to the song, Vocals were found, Drums and bass are separate | The split is real: the stems rebuild the song, and the voice landed in the vocal stem |
 | Voice profiles | Describe, save, reload and delete work, in a temporary folder |
