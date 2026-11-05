@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
 failed = False
-state = {"workspaces": [], "documents": {}, "updates": [], "models": True, "env": {}}
+state = {"workspaces": [], "documents": {}, "updates": [], "models": True, "env": {}, "embedded": [], "refuse": set()}
 
 
 def check(label, ok, detail):
@@ -54,10 +54,10 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
         elif self.path == "/api/v1/workspaces":
             self.reply({"workspaces": state["workspaces"]})
         elif self.path == "/api/v1/documents":
-            items = [{"name": title, "title": title} for title in state["documents"]]
+            items = [{"name": f"{title}-x.json", "title": title} for title in state["documents"]]
             self.reply({"localFiles": {"items": [{"name": "mac-ai-studio", "items": items}]}})
         elif self.path.startswith("/api/v1/workspace/"):
-            docs = [{"docpath": f"mac-ai-studio/{t}"} for t in state["documents"]]
+            docs = [{"docpath": f"mac-ai-studio/{t}-x.json"} for t, w in state["documents"].items() if w]
             self.reply({"workspace": [{**state["workspaces"][0], "documents": docs}]})
         else:
             self.reply({"error": "not found"}, 404)
@@ -79,6 +79,14 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
                          "queryRefusalResponse": body.get("queryRefusalResponse")}
             state["workspaces"].append(workspace)
             self.reply({"workspace": workspace})
+        elif self.path == "/api/v1/workspace/studio-help/update-embeddings":
+            adds = json.loads(raw).get("adds", [])
+            state["embedded"].append(adds)
+            for docpath in adds:
+                title = docpath.split("/", 1)[1].rsplit("-x.json", 1)[0]
+                if title in state["documents"] and title not in state["refuse"]:
+                    state["documents"][title] = "studio-help"
+            self.reply({"workspace": state["workspaces"][0]})
         elif self.path == "/api/v1/workspace/studio-help/update":
             body = json.loads(raw)
             state["updates"].append(body)
@@ -87,13 +95,13 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
         elif self.path == "/api/v1/workspace/studio-help/vector-search":
             query = json.loads(raw).get("query", "")
             results = [{"text": f"About {query}", "metadata": {"title": title}, "score": 0.31}
-                       for title in state["documents"]][:4]
+                       for title, w in state["documents"].items() if w][:4]
             self.reply({"results": results} if results else {"results": [], "message": "No embeddings found for this workspace."})
         elif self.path == "/api/v1/document/upload/mac-ai-studio":
             text = raw.decode("utf-8", "replace")
             name = text.split('filename="', 1)[1].split('"', 1)[0]
-            added = text.split('name="addToWorkspaces"\r\n\r\n', 1)[1].split("\r\n", 1)[0]
-            state["documents"][name] = added
+            # Like the desktop app on the client's Mac: an upload reaches the library, not the workspace.
+            state["documents"][name] = ""
             self.reply({"success": True, "documents": [{"location": f"mac-ai-studio/{name}-x.json"}]})
         else:
             self.reply({"error": "not found"}, 404)
@@ -102,7 +110,7 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length) or b"{}")
         for name in body.get("names", []):
-            state["documents"].pop(name.split("/", 1)[1], None)
+            state["documents"].pop(name.split("/", 1)[1].rsplit("-x.json", 1)[0], None)
         self.reply({"success": True})
 
 
@@ -148,6 +156,8 @@ def main():
         connection.commit()
         connection.close()
         state["documents"]["Old file.md"] = "studio-help"
+        # Uploaded by an earlier import but never added to the workspace: the client's case.
+        state["documents"]["ComfyUI - interface.md"] = ""
 
         importer = ("import", "--storage", str(storage), "--knowledge", str(knowledge), "--port", str(port),
                     "--lmstudio-url", f"http://127.0.0.1:{port}", "--match", "gpt-oss-120b")
@@ -174,10 +184,27 @@ def main():
         check("Old file removed", "Old file.md" not in state["documents"], "removed")
 
         result = run(*importer, env=env)
-        check("Second import skips existing files", result.returncode == 0 and result.stdout.count("Already there") == 2,
-              result.stdout.strip().splitlines()[-1])
+        check("Files added to the workspace in one step", state["embedded"][:1] == [[
+              "mac-ai-studio/ComfyUI - interface.md-x.json", "mac-ai-studio/Mac AI Studio - overview.md-x.json"]],
+              json.dumps(state["embedded"])[:140])
+        check("Import reports the workspace", "2 of 2 documents in the workspace" in result.stdout,
+              next((line for line in result.stdout.splitlines() if "documents in the workspace" in line), "no line"))
+        state["embedded"].clear()
+        result = run(*importer, env=env)
+        check("Second import skips existing files", result.returncode == 0 and result.stdout.count("Already there") == 2
+              and state["embedded"] == [], result.stdout.strip().splitlines()[-1])
         keys = sqlite3.connect(database).execute("SELECT count(*) FROM api_keys").fetchone()[0]
         check("Key reused", keys == 1, f"{keys} key(s)")
+        state["documents"]["ComfyUI - interface.md"] = ""
+        state["refuse"].add("ComfyUI - interface.md")
+        result = run(*importer, env=env)
+        check("A file that will not embed is named", result.returncode != 0 and "ComfyUI - interface.md" in result.stdout
+              and "not in the workspace" in result.stdout,
+              next((line for line in result.stdout.splitlines() if "not in the workspace" in line), result.stdout.strip()[-100:]))
+        state["refuse"].clear()
+        result = run(*importer, env=env)
+        check("The next import adds it", result.returncode == 0 and state["documents"]["ComfyUI - interface.md"] == "studio-help",
+              result.stdout.strip().splitlines()[-1])
 
         built = studio / "built"
         result = run("knowledge", "--repo-dir", str(REPO_DIR), "--comfyui-dir", str(studio / "none"),
@@ -190,6 +217,16 @@ def main():
               f"{text.count(chr(10) + '| ') - 2} packages")
         check("Studio's own node documented", (built / "knowledge" / "Mac AI Studio - CUSTOM_NODE.md").exists(),
               "Mac AI Studio - CUSTOM_NODE.md")
+
+        result = run("diagnose", "--storage", str(storage), "--knowledge", str(knowledge), "--port", str(port),
+                     "--lmstudio-url", f"http://127.0.0.1:{port}", env=env)
+        report = (studio / "logs" / "chat-report.txt").read_text() if (studio / "logs" / "chat-report.txt").exists() else ""
+        check("Diagnose report", result.returncode == 0 and "LLMProvider: lmstudio" in report and "chatMode: query" in report
+              and "In the workspace: 2" in report and "2 passages" in report, f"{len(report.splitlines())} lines")
+        check("Report hides the key", "studio-" not in report.replace("studio-…", "").replace("studio-help", ""),
+              "no API key in the report")
+        check("Import logged", "documents in the workspace" in (studio / "logs" / "assistant.log").read_text(),
+              "logs/assistant.log")
 
         result = run("check", "--storage", str(storage), "--port", str(port), env=env)
         check("Check reports the workspace", result.returncode == 0 and "2 documents" in result.stdout, result.stdout.strip()[-60:])

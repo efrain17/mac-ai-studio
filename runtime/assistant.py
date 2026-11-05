@@ -9,11 +9,14 @@ Standard library only. Run by milestone4.sh:
   assistant.py import      create the "Studio Help" workspace and upload the files (needs
                            AnythingLLM running; LM Studio's server for the model choice)
   assistant.py check       PASS/FAIL lines about the workspace, for the test
+  assistant.py diagnose    a report to copy and paste when the chat misbehaves
 """
 import argparse
+import datetime
 import json
 import os
 import pathlib
+import plistlib
 import re
 import secrets
 import sqlite3
@@ -29,6 +32,10 @@ SOURCES_DIR = KNOWLEDGE_DIR / "sources"
 WORKSPACE = "Studio Help"
 FOLDER = "mac-ai-studio"
 KEY_NAME = "Mac AI Studio installer"
+LOG_FILE = STUDIO_HOME / "logs" / "assistant.log"
+REPORT_FILE = STUDIO_HOME / "logs" / "chat-report.txt"
+# Documents added to the workspace per request: each request embeds them before it answers.
+EMBED_BATCH = 4
 ANYTHINGLLM_SECTIONS = ("agent", "agent-flows", "chatting-with-documents", "features", "installation-desktop",
                         "mcp-compatibility", "setup")
 SYSTEM_PROMPT = """You are the help assistant inside Mac AI Studio, an offline creative studio on this Mac. The owner is a writer and designer, not a programmer: answer in plain words, in short numbered steps, and name the tab and the app to use. The tabs are Images & Video (ComfyUI), Music (ACE-Step), Stems & Voices (Demucs, with Analyze and Chords tools), and Chat (AnythingLLM, with LM Studio behind it). Finished files are in the My Files folder (~/MacAIStudio/output). Answer only from the documents you are given. End every answer with a line "Sources:" naming the document and page you used, for example "Sources: ComfyUI - troubleshooting (overview.mdx)". If the documents do not cover the question, say so plainly instead of guessing. Never suggest a cloud service or a terminal command unless the documents give it."""
@@ -260,6 +267,27 @@ def cmd_mcp(args):
 # ---- Import into AnythingLLM ----------------------------------------------------------------
 
 
+class Tee:
+    """Prints as usual and appends every line to the studio's logs, with the time."""
+
+    def __init__(self, stream, path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream, self.file = stream, open(path, "a", encoding="utf-8")
+        self.file.write(f"\n=== {sys.argv[1] if len(sys.argv) > 1 else ''} {datetime.datetime.now():%Y-%m-%d %H:%M:%S}\n")
+
+    def write(self, text):
+        self.stream.write(text)
+        self.file.write(redact(text))
+        self.file.flush()
+
+    def flush(self):
+        self.stream.flush()
+
+
+def redact(text):
+    return re.sub(r"studio-[\w-]{8,}", "studio-…", text)
+
+
 def api(base, key, path, payload=None, method=None, timeout=120):
     data = None
     headers = {"Authorization": f"Bearer {key}", "Accept": "application/json"}
@@ -267,17 +295,22 @@ def api(base, key, path, payload=None, method=None, timeout=120):
         data = json.dumps(payload).encode()
         headers["Content-Type"] = "application/json"
     request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = response.read()
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            body = response.read()
+    except urllib.error.HTTPError as error:
+        # The body says why (a 500 from AnythingLLM carries its message); keep it for the logs.
+        detail = error.read().decode("utf-8", "replace")[:500]
+        raise urllib.error.URLError(f"{method or ('POST' if data else 'GET')} {path}: HTTP {error.code} {detail}") from error
     return json.loads(body) if body else {}
 
 
-def upload(base, key, folder, path, workspace):
+def upload(base, key, folder, path):
+    """Puts one file into AnythingLLM's document library. Adding it to the workspace is a separate,
+    checked step (embed_missing): on the client's Mac the upload's addToWorkspaces option left
+    every file out of the workspace without an error."""
     boundary = uuid.uuid4().hex
-    body = b""
-    for name, value in (("addToWorkspaces", workspace),):
-        body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").encode()
-    body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{path.name}\"\r\n"
+    body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{path.name}\"\r\n"
              "Content-Type: text/markdown\r\n\r\n").encode() + path.read_bytes() + b"\r\n"
     body += f"--{boundary}--\r\n".encode()
     request = urllib.request.Request(
@@ -342,6 +375,48 @@ def set_provider(port, lmstudio_url, model):
     return True
 
 
+def library(base, key):
+    """The files in the studio's folder of AnythingLLM's document library: title -> stored name."""
+    known = {}
+    for item in api(base, key, "/documents").get("localFiles", {}).get("items", []):
+        if item.get("name") == FOLDER:
+            for doc in item.get("items", []):
+                known[doc.get("title")] = doc.get("name")
+    return known
+
+
+def workspace_paths(base, key, slug):
+    found = api(base, key, f"/workspace/{slug}").get("workspace", [{}])
+    workspace = found[0] if isinstance(found, list) and found else found if isinstance(found, dict) else {}
+    return {doc.get("docpath") for doc in workspace.get("documents", [])}
+
+
+def embed_missing(base, key, slug, titles):
+    """Adds every library file of the studio that the workspace lacks, a few per request, and
+    returns the titles still missing afterwards."""
+    known = library(base, key)
+    present = workspace_paths(base, key, slug)
+    todo = [(title, f"{FOLDER}/{known[title]}") for title in titles if title in known and f"{FOLDER}/{known[title]}" not in present]
+    absent = [title for title in titles if title not in known]
+    if absent:
+        print("Not in AnythingLLM's library after the upload: " + ", ".join(absent))
+    if todo:
+        print(f"Adding {len(todo)} document(s) to the workspace (embedding; the large ComfyUI pages take minutes)")
+    for start in range(0, len(todo), EMBED_BATCH):
+        batch = todo[start:start + EMBED_BATCH]
+        began = datetime.datetime.now()
+        try:
+            api(base, key, f"/workspace/{slug}/update-embeddings", {"adds": [path for _, path in batch]}, timeout=3600)
+            outcome = "done"
+        except (urllib.error.URLError, OSError) as error:
+            outcome = f"error: {error}"
+        seconds = (datetime.datetime.now() - began).total_seconds()
+        print(f"  {', '.join(title for title, _ in batch)}: {outcome} ({seconds:.0f} s)")
+    present = workspace_paths(base, key, slug)
+    known = library(base, key)
+    return [title for title in titles if title not in known or f"{FOLDER}/{known[title]}" not in present]
+
+
 def cmd_import(args):
     storage = pathlib.Path(args.storage)
     base = f"http://127.0.0.1:{args.port}/api/v1"
@@ -380,14 +455,10 @@ def cmd_import(args):
     else:
         print(f"WARNING: LM Studio's server did not list a {args.match} model; the workspace keeps the app's default model.")
 
-    known = {}
-    for item in api(base, key, "/documents").get("localFiles", {}).get("items", []):
-        if item.get("name") == FOLDER:
-            for doc in item.get("items", []):
-                known[doc.get("title")] = doc.get("name")
     files = sorted(pathlib.Path(args.knowledge).glob("*.md"))
     if not files:
         sys.exit(f"No files in {args.knowledge}. Run milestone4.sh again.")
+    known = library(base, key)
     stale = [name for title, name in known.items() if title not in {f.name for f in files}]
     if stale:
         try:
@@ -400,12 +471,19 @@ def cmd_import(args):
             print(f"Already there: {path.name}")
             continue
         try:
-            result = upload(base, key, FOLDER, path, slug)
+            result = upload(base, key, FOLDER, path)
         except urllib.error.HTTPError as error:
             sys.exit(f"Upload of {path.name} failed: {error.read().decode()[:500]}")
         if not result.get("success", True):
             sys.exit(f"Upload of {path.name} failed: {result.get('error')}")
         print(f"Added {path.name}")
+
+    missing = embed_missing(base, key, slug, [f.name for f in files])
+    if missing:
+        print(f"{len(files) - len(missing)} of {len(files)} documents in the workspace. These are not in the workspace: "
+              + ", ".join(missing))
+        sys.exit("Some documents could not be added. Run ./milestone4.sh --diagnose and send the report.")
+    print(f"{len(files)} of {len(files)} documents in the workspace.")
     print(f"Done. Open the Chat tab and pick the '{WORKSPACE}' workspace.")
 
 
@@ -448,6 +526,109 @@ def cmd_check(args):
     sys.exit(0 if count and results and provider_ok else 1)
 
 
+def tail(path, lines=60):
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as error:
+        return [f"(could not read: {error})"]
+    return text[-lines:]
+
+
+def app_version(app):
+    try:
+        with open(f"/Applications/{app}.app/Contents/Info.plist", "rb") as handle:
+            return plistlib.load(handle).get("CFBundleShortVersionString", "unknown")
+    except (OSError, ValueError):
+        return "not found"
+
+
+def cmd_diagnose(args):
+    """Everything needed to see why the chat misbehaves, in one report, with keys removed."""
+    lines = [f"=== Mac AI Studio chat report, {datetime.datetime.now():%Y-%m-%d %H:%M} ===",
+             f"AnythingLLM app {app_version('AnythingLLM')}, LM Studio app {app_version('LM Studio')}"]
+
+    def section(title):
+        lines.extend(["", f"--- {title} ---"])
+
+    def attempt(label, action):
+        try:
+            return action()
+        except (urllib.error.URLError, OSError, ValueError, KeyError, IndexError, SystemExit) as error:
+            lines.append(f"{label}: ERROR {error}")
+            return None
+
+    storage = pathlib.Path(args.storage)
+    port = args.port
+    section("AnythingLLM settings")
+    raw = attempt("Settings", lambda: json.loads(urllib.request.urlopen(
+        f"http://127.0.0.1:{port}/api/setup-complete", timeout=30).read()).get("results", {}))
+    if raw is not None:
+        for name in ("LLMProvider", "LMStudioBasePath", "LMStudioModelPref", "EmbeddingEngine", "EmbeddingModelPref",
+                     "VectorDB", "MultiUserMode", "RequiresAuth"):
+            lines.append(f"{name}: {raw.get(name)}")
+
+    section("LM Studio")
+    models = attempt("Models", lambda: json.loads(urllib.request.urlopen(
+        f"{args.lmstudio_url}/v1/models", timeout=30).read()).get("data", []))
+    if models is not None:
+        lines.append("Models: " + (", ".join(m.get("id", "?") for m in models) or "none"))
+
+    section("Studio Help workspace")
+    key = attempt("Key", lambda: api_key(storage))
+    base = f"http://127.0.0.1:{port}/api/v1"
+    workspace = None
+    if key:
+        workspaces = attempt("Workspaces", lambda: api(base, key, "/workspaces").get("workspaces", []))
+        workspace = next((w for w in workspaces or [] if w.get("name") == WORKSPACE), None)
+        if workspace:
+            for name in ("slug", "chatMode", "similarityThreshold", "topN", "chatProvider", "chatModel",
+                         "agentProvider", "agentModel", "vectorSearchMode"):
+                lines.append(f"{name}: {workspace.get(name)}")
+        else:
+            lines.append(f"No '{WORKSPACE}' workspace. Workspaces: {[w.get('name') for w in workspaces or []]}")
+    if key and workspace:
+        known = attempt("Library", lambda: library(base, key)) or {}
+        present = attempt("Workspace documents", lambda: workspace_paths(base, key, workspace["slug"])) or set()
+        files = sorted(p.name for p in pathlib.Path(args.knowledge).glob("*.md"))
+        lines.append(f"Knowledge files on disk: {len(files)} in {args.knowledge}")
+        lines.append(f"In the library folder '{FOLDER}': {len(known)}")
+        lines.append(f"In the workspace: {len(present)}")
+        outside = [t for t in files if t in known and f"{FOLDER}/{known[t]}" not in present]
+        if outside:
+            lines.append("In the library but not in the workspace: " + ", ".join(outside))
+        never = [t for t in files if t not in known]
+        if never:
+            lines.append("Never uploaded: " + ", ".join(never))
+
+        section("Search with a sample question")
+        found = attempt("Search", lambda: api(base, key, f"/workspace/{workspace['slug']}/vector-search",
+                                                {"query": "How do I split a song into stems?", "topN": 4,
+                                                 "scoreThreshold": 0}))
+        if found is not None:
+            results = found.get("results", [])
+            lines.append(f"{len(results)} passages. {found.get('message') or ''}".strip())
+            for result in results:
+                lines.append(f"  {result.get('score', 0):.2f}  {result.get('metadata', {}).get('title')}")
+
+    section("Log files")
+    candidates = [pathlib.Path.home() / "Library" / "Logs" / "anythingllm-desktop",
+                  pathlib.Path.home() / "Library" / "Logs" / "AnythingLLM",
+                  storage / "logs", storage.parent / "logs"]
+    logs = sorted({p for folder in candidates if folder.is_dir() for p in folder.glob("*.log")},
+                  key=lambda p: p.stat().st_mtime, reverse=True)[:2]
+    for path in [*logs, STUDIO_HOME / "logs" / "40-chat.log", LOG_FILE]:
+        if path.exists():
+            lines.extend(["", f"[{path}] last lines:", *tail(path, 60 if path in logs else 40)])
+    if not logs:
+        lines.append("No AnythingLLM log file found in " + ", ".join(str(c) for c in candidates))
+
+    report = redact("\n".join(lines)) + "\n"
+    REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_FILE.write_text(report, encoding="utf-8")
+    print(report)
+    print(f"Saved to {REPORT_FILE}. Copy everything from '=== Mac AI Studio chat report' to here.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -476,12 +657,22 @@ def main():
     importer.add_argument("--match", default="gpt-oss-120b")
     importer.set_defaults(run=cmd_import)
 
+    diagnose = commands.add_parser("diagnose")
+    diagnose.add_argument("--storage", required=True)
+    diagnose.add_argument("--knowledge", default=str(KNOWLEDGE_DIR))
+    diagnose.add_argument("--port", type=int, default=3001)
+    diagnose.add_argument("--lmstudio-url", default="http://127.0.0.1:1234")
+    diagnose.set_defaults(run=cmd_diagnose)
+
     checker = commands.add_parser("check")
     checker.add_argument("--storage", required=True)
     checker.add_argument("--port", type=int, default=3001)
     checker.set_defaults(run=cmd_check)
 
     args = parser.parse_args()
+    if args.command in ("import", "check"):
+        # Kept in ~/MacAIStudio/logs/assistant.log, which the diagnose report includes.
+        sys.stdout = Tee(sys.stdout, LOG_FILE)
     args.run(args)
 
 
