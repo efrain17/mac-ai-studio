@@ -75,7 +75,8 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
         if self.path == "/api/v1/workspace/new":
             body = json.loads(raw)
             workspace = {"name": body["name"], "slug": "studio-help", "openAiPrompt": body.get("openAiPrompt"),
-                         "chatMode": body.get("chatMode")}
+                         "chatMode": body.get("chatMode"), "similarityThreshold": body.get("similarityThreshold"),
+                         "queryRefusalResponse": body.get("queryRefusalResponse")}
             state["workspaces"].append(workspace)
             self.reply({"workspace": workspace})
         elif self.path == "/api/v1/workspace/studio-help/update":
@@ -83,6 +84,11 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
             state["updates"].append(body)
             state["workspaces"][0].update(body)
             self.reply({"workspace": state["workspaces"][0]})
+        elif self.path == "/api/v1/workspace/studio-help/vector-search":
+            query = json.loads(raw).get("query", "")
+            results = [{"text": f"About {query}", "metadata": {"title": title}, "score": 0.31}
+                       for title in state["documents"]][:4]
+            self.reply({"results": results} if results else {"results": [], "message": "No embeddings found for this workspace."})
         elif self.path == "/api/v1/document/upload/mac-ai-studio":
             text = raw.decode("utf-8", "replace")
             name = text.split('filename="', 1)[1].split('"', 1)[0]
@@ -152,6 +158,10 @@ def main():
         check("Workspace created", [w["name"] for w in state["workspaces"]] == ["Studio Help"], str(state["workspaces"])[:80])
         workspace = state["workspaces"][0]
         check("Answers only from the documents", workspace.get("chatMode") == "query", str(workspace.get("chatMode")))
+        check("Every question reaches the documents", workspace.get("similarityThreshold") == 0,
+              f"similarity threshold {workspace.get('similarityThreshold')}")
+        check("Refusal explains an empty workspace", "--import" in (workspace.get("queryRefusalResponse") or ""),
+              (workspace.get("queryRefusalResponse") or "")[:70])
         check("Asks for sources", "Sources:" in (workspace.get("openAiPrompt") or ""), "the instructions ask for a Sources line")
         check("LM Studio set as the provider", state["env"].get("LLMProvider") == "lmstudio"
               and state["env"].get("LMStudioBasePath") == f"http://127.0.0.1:{port}/v1"
@@ -183,6 +193,8 @@ def main():
 
         result = run("check", "--storage", str(storage), "--port", str(port), env=env)
         check("Check reports the workspace", result.returncode == 0 and "2 documents" in result.stdout, result.stdout.strip()[-60:])
+        check("Check finds passages for a question", "PASS  A question finds" in result.stdout,
+              next((line for line in result.stdout.splitlines() if "question" in line), "no line"))
         check("Check reports the provider", "PASS  AnythingLLM uses LM Studio" in result.stdout, result.stdout.strip().splitlines()[0])
         state["env"].clear()
         result = run("check", "--storage", str(storage), "--port", str(port), env=env)
