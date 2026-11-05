@@ -32,6 +32,8 @@ class StandIn(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/ping":
             body = {"online": True}
+        elif self.path == "/api/setup-complete":
+            body = {"results": {"LLMProvider": "lmstudio", "LMStudioBasePath": "http://127.0.0.1:1234/v1"}}
         elif self.path == "/v1/models":
             body = {"data": [{"id": "mlx-community/gpt-oss-120b-mxfp4-q8"}]}
         else:
@@ -90,6 +92,7 @@ def main():
             check("Page", "Open AnythingLLM" in html and "Studio Help" in html, "button and workspace name")
             status = json.loads(fetch(f"http://127.0.0.1:{port}/status"))
             check("AnythingLLM reported", status.get("anythingllm") is True, json.dumps(status))
+            check("Provider reported", status.get("provider") is True, str(status.get("provider")))
             check("Chat model reported", status.get("model") == "mlx-community/gpt-oss-120b-mxfp4-q8",
                   str(status.get("model")))
             answer = json.loads(fetch(f"http://127.0.0.1:{port}/open", data=b""))
@@ -106,7 +109,8 @@ def main():
         page = start_page(port, free_port(), marker)
         try:
             status = json.loads(fetch(f"http://127.0.0.1:{port}/status"))
-            check("Apps not running", status.get("anythingllm") is False and status.get("lmstudio") is False,
+            check("Apps not running", status.get("anythingllm") is False and status.get("lmstudio") is False
+                  and status.get("provider") is False,
                   json.dumps(status))
         finally:
             page.terminate()

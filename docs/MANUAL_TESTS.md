@@ -161,7 +161,7 @@ It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool a
 | # | Do this | Expect |
 | --- | --- | --- |
 | 1 | Open the app, open the **Chat (AnythingLLM)** tab. The first start takes a minute | The loading screen shows a clock while LM Studio and AnythingLLM open. Then AnythingLLM's own window comes forward, and the tab shows the Chat page with two green dots: AnythingLLM running, and LM Studio's server running with the gpt-oss-120b model. If AnythingLLM's window goes behind, **Open AnythingLLM** brings it back. The chat itself is in AnythingLLM's window: its desktop app has no page that can show inside another app |
-| 2 | In AnythingLLM's window, open its settings (the wrench at the bottom left), then **AI Providers > LLM**. Choose **LM Studio**. The base URL is `http://127.0.0.1:1234/v1`; press the refresh button next to the model list and pick the model whose name contains `gpt-oss-120b`. Save | The provider is saved. AnythingLLM keeps this choice outside any file the installer may edit, so it is made once by hand |
+| 2 | In AnythingLLM's window, open its settings (the wrench at the bottom left), then **AI Providers > LLM** | **LM Studio** is chosen, the base URL is `http://127.0.0.1:1234/v1` and the model contains `gpt-oss-120b`. The installer sets this. If it shows another provider, choose LM Studio, press the refresh button next to the model list, pick the gpt-oss-120b model and save |
 | 3 | Go back to the workspaces and open **Studio Help** | A workspace with the studio's documents attached (the paperclip count is above 30) |
 
 **By hand**

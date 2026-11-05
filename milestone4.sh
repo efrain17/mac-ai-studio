@@ -241,6 +241,6 @@ fi
 exclude_from_backups "$SOURCES_DIR"
 
 show_next \
-  "Open Mac AI Studio; the Chat (AnythingLLM) tab is now there. On its first open, pick LM Studio as the" \
-  "LLM provider in its settings (see Milestone 4 in docs/MANUAL_TESTS.md), then ask it a question." \
+  "Open Mac AI Studio; the Chat (AnythingLLM) tab is now there. It opens AnythingLLM's own window;" \
+  "ask a question in the Studio Help workspace (see Milestone 4 in docs/MANUAL_TESTS.md)." \
   "Check the tools with: ./milestone4.sh --test"
