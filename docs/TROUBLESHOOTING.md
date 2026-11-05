@@ -136,6 +136,10 @@ Metal failures are often silent. A video can finish with no error and still be w
 | Out of memory while rendering from the chat | The chat model (63 GB) and a video model are loaded together. Close the Chat tab, which unloads the model, before long video renders, or render images only from the chat |
 | AnythingLLM's own window appears | Normal. The Chat tab shows the same page; either can be used. Quitting Mac AI Studio quits it |
 | `The analysis failed` on the Analyze tab | The file is shorter than a second, or not an audio file. See `~/MacAIStudio/logs/30-stems-voices.log` |
+| `Reading the chords failed` on the Chords tab | The same causes, or the split failed: see `~/MacAIStudio/logs/30-stems-voices.log`. Try again with **Separate guitar and keys** off, which skips the split |
+| Some chords in the chart are wrong | Expected now and then. The reader knows major and minor chords only, so `G7` shows as `G` and `Cmaj7` as `C` or `Em`. Busy mixes, distorted guitars and heavy vocals confuse it most; the guitar and keys charts, made from separated stems, are usually cleaner than the whole song |
+| The keys chart says no keyboard part, but the song has one | The 6-stem model's piano stem is weak and often misses synths and organs, which end up in the main progression instead |
+| The assistant says the documents do not cover a question it should know | Ask with the words the studio uses (the tab or node name). Answers come only from the documents; if it still fails, run `./milestone4.sh --import` with the Chat tab closed |
 | LM Studio asks to update | Allowed; it is the same program the update script updates. Say no while you have a deadline |
 
 The assistant's reading material is in `~/MacAIStudio/knowledge`, one Markdown file per topic. It covers the studio's own guides, ComfyUI, LM Studio, AnythingLLM, Demucs, ACE-Step and the model cards, at the versions installed.

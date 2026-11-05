@@ -154,7 +154,7 @@ Three full songs: indie folk with vocals, a cinematic score, upbeat pop with voc
 ./milestone4.sh --test
 ```
 
-It checks the assistant's ComfyUI tools and the Analyze tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), and confirms the workspace holds the documents. Each line should say `PASS`.
+It checks the assistant's ComfyUI tools, the Analyze tool and the Chords tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), and confirms the workspace holds the documents. Each line should say `PASS`.
 
 **First open, once**
 
@@ -168,15 +168,18 @@ It checks the assistant's ComfyUI tools and the Analyze tool against stand-ins, 
 
 | # | Do this | Expect |
 | --- | --- | --- |
-| 1 | In **Studio Help**, ask: *How do I split a song into stems?* | An answer that names the **Stems & Voices (Demucs)** tab and the Split button, with short steps, and citations under it. The first answer takes a minute or two while the model loads |
+| 1 | In **Studio Help**, ask: *How do I split a song into stems?* | An answer that names the **Stems & Voices (Demucs)** tab and the Split button, with short steps, a `Sources:` line at the end, and citations under it. The first answer takes a minute or two while the model loads |
 | 2 | Ask: *Where are my finished files?* | `~/MacAIStudio/output` and the **My Files** button |
 | 3 | Ask: *What does the cfg setting in a KSampler do?* | An explanation drawn from the ComfyUI documentation |
+| 3b | Ask: *Which version of PyTorch does ComfyUI use?* and then *What does softness do on the Progressive Reveal Mask node?* | The version from the Python packages page, and the answer from the node's own guide, each with its source |
+| 3c | Ask something the documents do not cover, such as *What is the capital of France?* | A short reply that the studio's documents do not cover it. The workspace answers only from the documents |
 | 4 | Type `@agent` followed by: *Make a claymation image of a lighthouse in a storm.* Wait | The agent lists the workflows, runs `03_claymation`, and reports the file it saved. Press **My Files**: the image is there |
 | 5 | Ask the agent: *What are the newest files I made?* | A list of the latest files, newest first |
 | 6 | Open **Stems & Voices (Demucs) > Analyze**, drop in the test song, press **Analyze** | Tempo in BPM, the key, the length and the levels |
+| 6b | Open **Chords**, drop in a song (a Suno or ACE-Step song works), leave **Separate guitar and keys** on, press **Read chords**. Wait for the split | A chart with three sections (main progression, guitar, keys), each a list of times and chord letters such as `0:12.4  Am`. A part the song does not have says so. The same chart is in **My Files > chords** as a text file. Play the song along the chart: most chords should match |
 | 7 | Open **LM Studio** from Applications, pick the gpt-oss model, open its Integrations (the plug icon) | `mac-ai-studio-comfyui` is listed, with the same tools |
 
-**Pass:** steps 1 to 3 answer from the documents with citations, step 4 produces an image, and step 6 shows a tempo and key.
+**Pass:** steps 1 to 3c answer from the documents with sources, step 4 produces an image, step 6 shows a tempo and key, and step 6b gives a chord chart.
 
 To check that it works offline, turn Wi-Fi off before step 1. LM Studio shows a notice that it cannot check for updates; everything else works the same.
 

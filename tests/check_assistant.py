@@ -67,7 +67,8 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
             return
         if self.path == "/api/v1/workspace/new":
             body = json.loads(raw)
-            workspace = {"name": body["name"], "slug": "studio-help", "openAiPrompt": body.get("openAiPrompt")}
+            workspace = {"name": body["name"], "slug": "studio-help", "openAiPrompt": body.get("openAiPrompt"),
+                         "chatMode": body.get("chatMode")}
             state["workspaces"].append(workspace)
             self.reply({"workspace": workspace})
         elif self.path == "/api/v1/workspace/studio-help/update":
@@ -142,6 +143,9 @@ def main():
         keys = sqlite3.connect(database).execute("SELECT name, secret FROM api_keys").fetchall()
         check("One key in the database", len(keys) == 1 and keys[0][0] == "Mac AI Studio installer", str([k[0] for k in keys]))
         check("Workspace created", [w["name"] for w in state["workspaces"]] == ["Studio Help"], str(state["workspaces"])[:80])
+        workspace = state["workspaces"][0]
+        check("Answers only from the documents", workspace.get("chatMode") == "query", str(workspace.get("chatMode")))
+        check("Asks for sources", "Sources:" in (workspace.get("openAiPrompt") or ""), "the instructions ask for a Sources line")
         check("Model chosen", any(u.get("chatModel") == "mlx-community/gpt-oss-120b-mxfp4-q8" and u.get("agentProvider") == "lmstudio"
                                   for u in state["updates"]), json.dumps(state["updates"])[:120])
         check("Files uploaded into the workspace", state["documents"] == {"Mac AI Studio - overview.md": "studio-help",
@@ -154,6 +158,18 @@ def main():
               result.stdout.strip().splitlines()[-1])
         keys = sqlite3.connect(database).execute("SELECT count(*) FROM api_keys").fetchone()[0]
         check("Key reused", keys == 1, f"{keys} key(s)")
+
+        built = studio / "built"
+        result = run("knowledge", "--repo-dir", str(REPO_DIR), "--comfyui-dir", str(studio / "none"),
+                     "--ace-dir", str(studio / "none"), "--models-dir", str(studio / "none"),
+                     "--python", f"Test environment={sys.executable}", env={**env, "STUDIO_HOME": str(built)})
+        check("Knowledge built", result.returncode == 0, (result.stderr or result.stdout).strip()[-120:])
+        packages = built / "knowledge" / "Python packages - Test environment.md"
+        text = packages.read_text() if packages.exists() else ""
+        check("Python packages listed", "| Package | Version |" in text and text.count("\n| ") > 2,
+              f"{text.count(chr(10) + '| ') - 2} packages")
+        check("Studio's own node documented", (built / "knowledge" / "Mac AI Studio - CUSTOM_NODE.md").exists(),
+              "Mac AI Studio - CUSTOM_NODE.md")
 
         result = run("check", "--storage", str(storage), "--port", str(port), env=env)
         check("Check reports the workspace", result.returncode == 0 and "2 documents" in result.stdout, result.stdout.strip()[-60:])
