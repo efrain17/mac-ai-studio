@@ -315,6 +315,33 @@ def chat_model(lmstudio_url, match):
     return next((m["id"] for m in models if match in m["id"]), None)
 
 
+def set_provider(port, lmstudio_url, model):
+    """Makes LM Studio AnythingLLM's model provider, the way its own settings page saves it.
+
+    The desktop app keeps the provider in its environment; its settings page writes it through
+    /api/system/update-env, which needs no key while the app has no password (the default). Without
+    this, a workspace set to LM Studio fails with "No LMStudio API Base Path was set".
+    """
+    values = {"LLMProvider": "lmstudio", "LMStudioBasePath": f"{lmstudio_url}/v1"}
+    if model:
+        values["LMStudioModelPref"] = model
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{port}/api/system/update-env", data=json.dumps(values).encode(), method="POST",
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            answer = json.loads(response.read() or b"{}")
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        answer = {"error": str(error)}
+    if answer.get("error"):
+        print(f"WARNING: could not set LM Studio as AnythingLLM's provider ({answer['error']}). Set it by hand: "
+              f"AnythingLLM settings > AI Providers > LLM > LM Studio, base URL {lmstudio_url}/v1.")
+        return False
+    print(f"AnythingLLM uses LM Studio at {lmstudio_url}/v1.")
+    return True
+
+
 def cmd_import(args):
     storage = pathlib.Path(args.storage)
     base = f"http://127.0.0.1:{args.port}/api/v1"
@@ -341,6 +368,7 @@ def cmd_import(args):
         print(f"Workspace '{WORKSPACE}' created ({slug}).")
 
     model = chat_model(args.lmstudio_url, args.match)
+    set_provider(args.port, args.lmstudio_url, model)
     if model:
         api(base, key, f"/workspace/{slug}/update",
             {"chatProvider": "lmstudio", "chatModel": model, "agentProvider": "lmstudio", "agentModel": model})
@@ -378,8 +406,19 @@ def cmd_import(args):
 
 
 def cmd_check(args):
-    """PASS/FAIL lines for the test: the workspace, its model and its documents."""
+    """PASS/FAIL lines for the test: the provider, the workspace, its model and its documents."""
     base = f"http://127.0.0.1:{args.port}/api/v1"
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{args.port}/api/setup-complete", timeout=30) as response:
+            current = json.loads(response.read()).get("results", {})
+    except (urllib.error.URLError, OSError, ValueError):
+        current = {}
+    provider_ok = current.get("LLMProvider") == "lmstudio" and bool(current.get("LMStudioBasePath"))
+    if provider_ok:
+        print(f"PASS  AnythingLLM uses LM Studio at {current['LMStudioBasePath']}")
+    else:
+        print(f"FAIL  AnythingLLM's LLM provider is {current.get('LLMProvider') or 'not set'}, not LM Studio with an "
+              "address. Run ./milestone4.sh --import")
     key = api_key(pathlib.Path(args.storage))
     workspace = next((w for w in api(base, key, "/workspaces").get("workspaces", []) if w["name"] == WORKSPACE), None)
     if not workspace:
@@ -388,7 +427,7 @@ def cmd_check(args):
     documents = api(base, key, f"/workspace/{workspace['slug']}").get("workspace", [{}])
     count = len((documents[0] if isinstance(documents, list) else documents).get("documents", []))
     print(f"{'PASS' if count else 'FAIL'}  {count} documents in the workspace")
-    sys.exit(0 if count else 1)
+    sys.exit(0 if count and provider_ok else 1)
 
 
 def main():

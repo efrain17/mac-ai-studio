@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
 failed = False
-state = {"workspaces": [], "documents": {}, "updates": [], "models": True}
+state = {"workspaces": [], "documents": {}, "updates": [], "models": True, "env": {}}
 
 
 def check(label, ok, detail):
@@ -44,7 +44,10 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
         if self.path == "/v1/models":  # the stand-in LM Studio
             self.reply({"data": [{"id": "mlx-community/gpt-oss-120b-mxfp4-q8"}, {"id": "text-embedding-x"}]})
             return
-        if not self.authorized():
+        if self.path == "/api/setup-complete":  # the app's own settings, open without a password
+            self.reply({"results": {"LLMProvider": state["env"].get("LLMProvider"),
+                                    "LMStudioBasePath": state["env"].get("LMStudioBasePath")}})
+        elif not self.authorized():
             self.reply({"error": "no"}, 403)
         elif self.path == "/api/v1/auth":
             self.reply({"authenticated": True})
@@ -62,6 +65,10 @@ class FakeAnythingLLM(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
         raw = self.rfile.read(length)
+        if self.path == "/api/system/update-env":  # what AnythingLLM's settings page saves
+            state["env"].update(json.loads(raw))
+            self.reply({"newValues": json.loads(raw), "error": False})
+            return
         if not self.authorized():
             self.reply({"error": "no"}, 403)
             return
@@ -146,6 +153,9 @@ def main():
         workspace = state["workspaces"][0]
         check("Answers only from the documents", workspace.get("chatMode") == "query", str(workspace.get("chatMode")))
         check("Asks for sources", "Sources:" in (workspace.get("openAiPrompt") or ""), "the instructions ask for a Sources line")
+        check("LM Studio set as the provider", state["env"].get("LLMProvider") == "lmstudio"
+              and state["env"].get("LMStudioBasePath") == f"http://127.0.0.1:{port}/v1"
+              and state["env"].get("LMStudioModelPref") == "mlx-community/gpt-oss-120b-mxfp4-q8", json.dumps(state["env"]))
         check("Model chosen", any(u.get("chatModel") == "mlx-community/gpt-oss-120b-mxfp4-q8" and u.get("agentProvider") == "lmstudio"
                                   for u in state["updates"]), json.dumps(state["updates"])[:120])
         check("Files uploaded into the workspace", state["documents"] == {"Mac AI Studio - overview.md": "studio-help",
@@ -173,6 +183,11 @@ def main():
 
         result = run("check", "--storage", str(storage), "--port", str(port), env=env)
         check("Check reports the workspace", result.returncode == 0 and "2 documents" in result.stdout, result.stdout.strip()[-60:])
+        check("Check reports the provider", "PASS  AnythingLLM uses LM Studio" in result.stdout, result.stdout.strip().splitlines()[0])
+        state["env"].clear()
+        result = run("check", "--storage", str(storage), "--port", str(port), env=env)
+        check("Check catches a missing provider", result.returncode != 0 and "FAIL  AnythingLLM's LLM provider" in result.stdout,
+              next((line for line in result.stdout.splitlines() if "provider" in line), result.stdout.strip()[-80:]))
     server.shutdown()
     sys.exit(1 if failed else 0)
 

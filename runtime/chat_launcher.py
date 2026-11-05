@@ -59,6 +59,7 @@ PAGE = """<!doctype html>
     <ul class="status" data-id="chat-status">
       <li><span class="dot" id="anythingllm-dot"></span><span id="anythingllm">AnythingLLM: checking…</span></li>
       <li><span class="dot" id="lmstudio-dot"></span><span id="lmstudio">LM Studio's server: checking…</span></li>
+      <li><span class="dot" id="provider-dot"></span><span id="provider">AnythingLLM's model provider: checking…</span></li>
     </ul>
     <h2>Tips</h2>
     <ol>
@@ -83,6 +84,10 @@ PAGE = """<!doctype html>
            status.model ? "LM Studio's server: running, with " + status.model
                         : status.lmstudio ? "LM Studio's server: running, but the chat model is not listed"
                                           : "LM Studio's server: not running yet");
+      show("provider", status.provider,
+           status.provider ? "AnythingLLM's model provider: LM Studio"
+                           : status.anythingllm ? "AnythingLLM's model provider: not LM Studio. Run ./milestone4.sh --import, or choose LM Studio in AnythingLLM's settings"
+                                                : "AnythingLLM's model provider: waiting for AnythingLLM");
     } catch (error) { /* The page is restarting; the next check updates it. */ }
   }
   document.getElementById("open").addEventListener("click", () => fetch("/open", { method: "POST" }));
@@ -104,11 +109,14 @@ def get_json(url):
 
 def status(anythingllm_port, lmstudio_port):
     models = get_json(f"http://127.0.0.1:{lmstudio_port}/v1/models")
+    settings = (get_json(f"http://127.0.0.1:{anythingllm_port}/api/setup-complete") or {}).get("results", {})
     names = [m.get("id", "") for m in (models or {}).get("data", [])]
     return {
         "anythingllm": get_json(f"http://127.0.0.1:{anythingllm_port}/api/ping") is not None,
         "lmstudio": models is not None,
         "model": next((name for name in names if MODEL_MATCH in name), None),
+        # Without these two settings every answer fails with "No LMStudio API Base Path was set".
+        "provider": settings.get("LLMProvider") == "lmstudio" and bool(settings.get("LMStudioBasePath")),
     }
 
 
