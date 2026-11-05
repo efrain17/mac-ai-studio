@@ -355,9 +355,13 @@ def cmd_import(args):
     existing = next((w for w in workspaces if w["name"] == WORKSPACE), None)
     settings = {
         "openAiPrompt": SYSTEM_PROMPT, "openAiTemp": 0.3, "openAiHistory": 20,
-        # Query mode answers only from the documents and says so when they do not cover a question.
-        "similarityThreshold": 0.25, "topN": 8, "chatMode": "query",
-        "queryRefusalResponse": "The studio's documents do not cover that. Ask about the tabs, the workflows, the music tools or the files.",
+        # Query mode answers only from the documents. No similarity threshold: the small offline
+        # embedder often scores a relevant passage below AnythingLLM's default 0.25 for a plain
+        # question, and query mode then refuses without asking the model. The 8 closest passages
+        # always reach the model, and its instructions say what to do when they do not cover the
+        # question, so this reply now only appears when the workspace holds no documents.
+        "similarityThreshold": 0.0, "topN": 8, "chatMode": "query",
+        "queryRefusalResponse": "The Studio Help workspace has no documents yet. Quit Mac AI Studio and run ./milestone4.sh --import in the installer folder, then ask again.",
     }
     if existing:
         slug = existing["slug"]
@@ -427,7 +431,21 @@ def cmd_check(args):
     documents = api(base, key, f"/workspace/{workspace['slug']}").get("workspace", [{}])
     count = len((documents[0] if isinstance(documents, list) else documents).get("documents", []))
     print(f"{'PASS' if count else 'FAIL'}  {count} documents in the workspace")
-    sys.exit(0 if count and provider_ok else 1)
+    # The same search a chat question runs, without the model: proves the documents are embedded.
+    question = "How do I split a song into stems?"
+    try:
+        found = api(base, key, f"/workspace/{workspace['slug']}/vector-search",
+                    {"query": question, "topN": 4, "scoreThreshold": 0})
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        found = {"results": [], "message": str(error)}
+    results = found.get("results", [])
+    if results:
+        best = results[0]
+        print(f"PASS  A question finds {len(results)} passages; the closest is from "
+              f"'{best.get('metadata', {}).get('title')}' (score {best.get('score', 0):.2f})")
+    else:
+        print(f"FAIL  A question finds no passages ({found.get('message') or 'no results'}). Run ./milestone4.sh --import")
+    sys.exit(0 if count and results and provider_ok else 1)
 
 
 def main():

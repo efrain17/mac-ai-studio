@@ -154,7 +154,7 @@ Three full songs: indie folk with vocals, a cinematic score, upbeat pop with voc
 ./milestone4.sh --test
 ```
 
-It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool and the Chords tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), and confirms the workspace holds the documents. Each line should say `PASS`.
+It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool and the Chords tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), confirms the workspace holds the documents, and searches them with a sample question. Each line should say `PASS`.
 
 **First open, once**
 
@@ -172,7 +172,7 @@ It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool a
 | 2 | Ask: *Where are my finished files?* | `~/MacAIStudio/output` and the **My Files** button |
 | 3 | Ask: *What does the cfg setting in a KSampler do?* | An explanation drawn from the ComfyUI documentation |
 | 3b | Ask: *Which version of PyTorch does ComfyUI use?* and then *What does softness do on the Progressive Reveal Mask node?* | The version from the Python packages page, and the answer from the node's own guide, each with its source |
-| 3c | Ask something the documents do not cover, such as *What is the capital of France?* | A short reply that the studio's documents do not cover it. The workspace answers only from the documents |
+| 3c | Ask something the documents do not cover, such as *What is the capital of France?* | The model says the studio's documents do not cover it, instead of answering from general knowledge |
 | 4 | Type `@agent` followed by: *Make a claymation image of a lighthouse in a storm.* Wait | The agent lists the workflows, runs `03_claymation`, and reports the file it saved. Press **My Files**: the image is there |
 | 5 | Ask the agent: *What are the newest files I made?* | A list of the latest files, newest first |
 | 6 | Open **Stems & Voices (Demucs) > Analyze**, drop in the test song, press **Analyze** | Tempo in BPM, the key, the length and the levels |
