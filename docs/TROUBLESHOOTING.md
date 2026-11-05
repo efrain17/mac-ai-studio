@@ -125,7 +125,7 @@ Metal failures are often silent. A video can finish with no error and still be w
 
 | Problem | Fix |
 | --- | --- |
-| The Chat tab says it did not start | Open `~/MacAIStudio/logs/40-chat.log`. `Port 3001 is used by another program` means something else holds the port AnythingLLM needs; quit that program. Otherwise open AnythingLLM once from Applications, then try the tab again |
+| The Chat tab says it did not start | Open `~/MacAIStudio/logs/40-chat.log`. `AnythingLLM did not answer on port 3001` can mean another program holds the port AnythingLLM needs; quit that program. Otherwise open AnythingLLM once from Applications, then try the tab again |
 | `LM Studio opened. Go through its welcome screen` and the script waits | Finish LM Studio's first screen and leave the app open. It then installs its `lms` command, and the script continues |
 | `LM Studio does not list the model yet` | Quit and reopen LM Studio; its model list is read at start. The files are linked into `~/.lmstudio/models` |
 | Every answer says the model is not set, or the chat fails at once | The one-time choice in AnythingLLM's settings is missing: **AI Providers > LLM > LM Studio**, model `gpt-oss-120b`. See Milestone 4 in [MANUAL_TESTS.md](MANUAL_TESTS.md) |
@@ -134,7 +134,9 @@ Metal failures are often silent. A video can finish with no error and still be w
 | `@agent` does nothing, or says it has no tools | Open AnythingLLM's **Agent Skills** page once; it reads the tool settings then. The file is `~/Library/Application Support/anythingllm-desktop/storage/plugins/anythingllm_mcp_servers.json` |
 | The agent cannot render: `ComfyUI did not start` | The tools start ComfyUI the way the app does. See `~/MacAIStudio/logs/10-images.log`, and the Images section above |
 | Out of memory while rendering from the chat | The chat model (63 GB) and a video model are loaded together. Close the Chat tab, which unloads the model, before long video renders, or render images only from the chat |
-| AnythingLLM's own window appears | Normal. The Chat tab shows the same page; either can be used. Quitting Mac AI Studio quits it |
+| The Chat tab shows a status page, not the chat | Expected. AnythingLLM's desktop app has no web page, so the chat is in its own window. Press **Open AnythingLLM** on the tab to bring it forward. Quitting Mac AI Studio quits it |
+| The Chat tab says `Not Found` | The studio still has the first version of the Chat tab, which tried to show AnythingLLM inside the app. Quit Mac AI Studio, run `git pull` and `./milestone4.sh` again, then reopen the app |
+| A dot on the Chat tab stays orange | `AnythingLLM: starting…` for more than a minute: open AnythingLLM from Applications once. `the chat model is not listed`: open LM Studio and check that the gpt-oss-120b model is in its list. See `~/MacAIStudio/logs/40-chat.log` |
 | `The analysis failed` on the Analyze tab | The file is shorter than a second, or not an audio file. See `~/MacAIStudio/logs/30-stems-voices.log` |
 | `Reading the chords failed` on the Chords tab | The same causes, or the split failed: see `~/MacAIStudio/logs/30-stems-voices.log`. Try again with **Separate guitar and keys** off, which skips the split |
 | Some chords in the chart are wrong | Expected now and then. The reader knows major and minor chords only, so `G7` shows as `G` and `Cmaj7` as `C` or `Em`. Busy mixes, distorted guitars and heavy vocals confuse it most; the guitar and keys charts, made from separated stems, are usually cleaner than the whole song |
