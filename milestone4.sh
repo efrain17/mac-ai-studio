@@ -1,7 +1,7 @@
 #!/bin/bash
 # Milestone 4: the chat assistant. LM Studio runs an open model on this Mac, AnythingLLM gives it
 # the studio's documentation to answer from and the ComfyUI tools to act with, and librosa adds
-# an Analyze tool to the Stems & Voices page. Safe to run again. Needs milestones 1 to 3.
+# Analyze and Chords tools to the Stems & Voices page. Safe to run again. Needs milestones 1 to 3.
 #
 #   ./milestone4.sh           install (two apps, a 63 GB model, the documentation)
 #   ./milestone4.sh --verify  check the installed model files against their checksums
@@ -85,6 +85,8 @@ case "${1:-}" in
     "$PY" "$REPO_DIR/tests/check_comfy_mcp.py" || status=1
     say "Analyze tool"
     "$STEMS_ENV/bin/python" "$REPO_DIR/tests/check_analyze.py" || status=1
+    say "Chords tool"
+    "$STEMS_ENV/bin/python" "$REPO_DIR/tests/check_chords.py" || status=1
     say "Chat tab (starts LM Studio's server and AnythingLLM)"
     if url="$("$RUNTIME_DIR/services.sh" start 40-chat)"; then
       echo "PASS  AnythingLLM answered at $url"
@@ -205,7 +207,9 @@ fetch_docs stability-matrix "$KNOWLEDGE_STABILITY_MATRIX_REPO" "$KNOWLEDGE_STABI
 
 say "Reading material, as plain Markdown files"
 "$PY" "$REPO_DIR/runtime/assistant.py" knowledge --repo-dir "$REPO_DIR" \
-  --comfyui-dir "$COMFYUI_DIR" --ace-dir "$ACE_DIR" --models-dir "$MODELS_DIR"
+  --comfyui-dir "$COMFYUI_DIR" --ace-dir "$ACE_DIR" --models-dir "$MODELS_DIR" \
+  --python "ComfyUI=$COMFYUI_ENV/bin/python" --python "Music (ACE-Step)=$ACE_DIR/.venv/bin/python" \
+  --python "Stems and Voices=$STEMS_ENV/bin/python"
 
 say "ComfyUI tools for the assistant"
 mkdir -p "$RUNTIME_DIR/workflows"

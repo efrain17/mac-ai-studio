@@ -17,6 +17,7 @@ import pathlib
 import re
 import secrets
 import sqlite3
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -30,7 +31,30 @@ FOLDER = "mac-ai-studio"
 KEY_NAME = "Mac AI Studio installer"
 ANYTHINGLLM_SECTIONS = ("agent", "agent-flows", "chatting-with-documents", "features", "installation-desktop",
                         "mcp-compatibility", "setup")
-SYSTEM_PROMPT = """You are the help assistant inside Mac AI Studio, an offline creative studio on this Mac. The owner is a writer and designer, not a programmer: answer in plain words, in short numbered steps, and name the tab and the app to use. The tabs are Images & Video (ComfyUI), Music (ACE-Step), Stems & Voices (Demucs, with an Analyze tool), and Chat (AnythingLLM, with LM Studio behind it). Finished files are in the My Files folder (~/MacAIStudio/output). Answer from the documents when they cover the question, and say so when they do not. Never suggest a cloud service or a terminal command unless the documents give it."""
+SYSTEM_PROMPT = """You are the help assistant inside Mac AI Studio, an offline creative studio on this Mac. The owner is a writer and designer, not a programmer: answer in plain words, in short numbered steps, and name the tab and the app to use. The tabs are Images & Video (ComfyUI), Music (ACE-Step), Stems & Voices (Demucs, with Analyze and Chords tools), and Chat (AnythingLLM, with LM Studio behind it). Finished files are in the My Files folder (~/MacAIStudio/output). Answer only from the documents you are given. End every answer with a line "Sources:" naming the document and page you used, for example "Sources: ComfyUI - troubleshooting (overview.mdx)". If the documents do not cover the question, say so plainly instead of guessing. Never suggest a cloud service or a terminal command unless the documents give it."""
+# Answers come with their sources in a short list; Python package READMEs are long, so each is cut.
+DESCRIPTION_LIMIT = 30000
+# The packages whose own description (their README) is worth reading; the rest are listed by version.
+KEY_PACKAGES = ("torch", "torchaudio", "torchvision", "torchcodec", "numpy", "safetensors", "transformers",
+                "diffusers", "accelerate", "peft", "huggingface-hub", "gradio", "librosa", "soundfile", "demucs",
+                "mlx", "mlx-lm", "pillow", "av", "einops", "comfyui-frontend-package")
+# Run by each environment's own Python, so the versions are the ones actually installed.
+PACKAGE_SCRIPT = r"""
+import json, sys, importlib.metadata as metadata
+wanted = set(sys.argv[1:])
+found = {}
+for dist in metadata.distributions():
+    name = (dist.metadata["Name"] or "").strip()
+    if not name:
+        continue
+    key = name.lower().replace("_", "-")
+    entry = {"name": name, "version": dist.version, "summary": dist.metadata["Summary"] or ""}
+    if key in wanted:
+        text = dist.read_text("METADATA") or ""
+        entry["description"] = text.split("\n\n", 1)[1] if "\n\n" in text else ""
+    found[key] = entry
+print(json.dumps(found))
+"""
 
 OVERVIEW = """# Mac AI Studio: what is installed and where
 
@@ -40,12 +64,12 @@ Mac AI Studio is one desktop app (in Applications) with four tabs. Each tab is a
 | --- | --- | --- |
 | Images & Video (ComfyUI) | ComfyUI, a node editor | Renders images in three styles (gritty graphic novel, photorealistic human, claymation) and three video flows (text to video, sketch folder to video, sketch-and-fill animation). Each flow is a saved workflow in the Workflows panel (press W), under the Mac AI Studio folder; Pro video flows use Wan 2.2, the others LTX-Video |
 | Music (ACE-Step) | ACE-Step 1.5 | Makes complete songs with vocals from a description (caption) and lyrics. Has a LoRA Training tab. Temperature, Top-K and Top-P are under Settings > LM Generation at the top of its page |
-| Stems & Voices (Demucs) | Demucs, in a small page made for the studio | Split Stems: a song into vocals, drums, bass, other and instrumental WAV files (a 6-stem choice adds guitar and piano). Analyze: tempo, key, length and levels of a song (librosa). Voice Profiles: saves singer descriptions to paste into the Music caption |
+| Stems & Voices (Demucs) | Demucs and librosa, in a small page made for the studio | Split Stems: a song into vocals, drums, bass, other and instrumental WAV files (a 6-stem choice adds guitar and piano). Analyze: tempo, key, length and levels of a song. Chords: a text chord chart in letters (C, G, Am, F) with the time each chord starts; with "Separate guitar and keys" on, three charts: main progression, guitar and keys. Voice Profiles: saves singer descriptions to paste into the Music caption |
 | Chat (AnythingLLM) | AnythingLLM, with LM Studio running the gpt-oss-120b model | This assistant. Answers questions about the studio from its documents. In agent mode (start a message with @agent) it can run the studio's image and video workflows through its ComfyUI tools |
 
 ## Folders
 
-- Finished work: `~/MacAIStudio/output` (the **My Files** button). Images in `images/`, videos in `video/`, songs in `music/`, stems in `stems/`.
+- Finished work: `~/MacAIStudio/output` (the **My Files** button). Images in `images/`, videos in `video/`, songs in `music/`, stems in `stems/`, chord charts in `chords/`.
 - Sketches for the video flows: `~/MacAIStudio/input/sketches`.
 - Models: `~/MacAIStudio/models` (the **Models** button opens Stability Matrix, which manages them).
 - Logs: `~/MacAIStudio/logs`, one file per tool and one per install run.
@@ -109,6 +133,38 @@ def write(name, text):
     print(f"{target.name}: {len(text) // 1024} KB")
 
 
+def packages_page(label, python):
+    """The Python packages of one environment, from that environment's own Python: every package
+    with its version, then the description of the main ones."""
+    try:
+        result = subprocess.run([python, "-I", "-c", PACKAGE_SCRIPT, *KEY_PACKAGES],
+                                capture_output=True, text=True, timeout=300)
+        found = json.loads(result.stdout)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"WARNING: could not list the packages of {label} ({python}): {error}")
+        return None
+    folder = pathlib.Path(python).parent.parent
+    lines = [f"# Python packages: {label}",
+             "",
+             f"The Python packages installed for {label}, in `{folder}`, at the exact versions the studio was "
+             "tested with. The installer pins every version in its lock files, so do not upgrade them by hand; "
+             "see the guide \"Updating\". When a tool reports a missing or broken package, run the milestone "
+             "that installed it again.",
+             "",
+             "| Package | Version | What it is |",
+             "| --- | --- | --- |"]
+    for key in sorted(found):
+        entry = found[key]
+        summary = entry["summary"].replace("|", "/").strip()
+        lines.append(f"| {entry['name']} | {entry['version']} | {summary} |")
+    for key in KEY_PACKAGES:
+        entry = found.get(key)
+        if entry and entry.get("description", "").strip():
+            body = clean(entry["description"])[:DESCRIPTION_LIMIT]
+            lines += ["", "---", "", f"## {entry['name']} {entry['version']}", "", body]
+    return "\n".join(lines) + "\n"
+
+
 def cmd_knowledge(args):
     KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
     for stale in KNOWLEDGE_DIR.glob("*.md"):
@@ -127,8 +183,14 @@ def cmd_knowledge(args):
     if notes:
         write("Mac AI Studio - workflow notes", "# Notes shown inside each ComfyUI workflow" + "".join(notes))
 
+    for item in args.python or []:
+        label, _, python = item.partition("=")
+        page = packages_page(label, python)
+        if page:
+            write(f"Python packages - {label}", page)
+
     comfy = SOURCES_DIR / "comfyui"
-    for folder in sorted(p for p in comfy.iterdir() if p.is_dir() and not p.name.startswith(".")):
+    for folder in sorted(p for p in comfy.glob("*") if p.is_dir() and not p.name.startswith(".")):
         found = pages(folder)
         if found:
             write(f"ComfyUI - {folder.name}", merge(found, f"ComfyUI documentation: {folder.name}"))
@@ -266,7 +328,8 @@ def cmd_import(args):
     existing = next((w for w in workspaces if w["name"] == WORKSPACE), None)
     settings = {
         "openAiPrompt": SYSTEM_PROMPT, "openAiTemp": 0.3, "openAiHistory": 20,
-        "similarityThreshold": 0.25, "topN": 8, "chatMode": "chat",
+        # Query mode answers only from the documents and says so when they do not cover a question.
+        "similarityThreshold": 0.25, "topN": 8, "chatMode": "query",
         "queryRefusalResponse": "The studio's documents do not cover that. Ask about the tabs, the workflows, the music tools or the files.",
     }
     if existing:
@@ -337,6 +400,8 @@ def main():
     knowledge.add_argument("--comfyui-dir", required=True)
     knowledge.add_argument("--ace-dir", required=True)
     knowledge.add_argument("--models-dir", required=True)
+    knowledge.add_argument("--python", action="append", metavar="LABEL=PATH",
+                           help="an environment whose packages the assistant should know; repeatable")
     knowledge.set_defaults(run=cmd_knowledge)
 
     mcp = commands.add_parser("mcp")

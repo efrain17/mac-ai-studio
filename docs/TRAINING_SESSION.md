@@ -20,7 +20,7 @@ Start recording first. Say the date and what the session covers.
 | 25 min | Images | Opens each style, changes a prompt, renders, finds the file |
 | 25 min | Video | Adds a sketch to the folder, runs a batch, runs sketch and fill |
 | 25 min | Music | Pastes lyrics, generates, tries the Temperature, Top-K and Top-P controls |
-| 10 min | Stems and voices | Splits a song, reads its tempo and key with Analyze, drags stems into a music app, saves a voice profile |
+| 10 min | Stems and voices | Splits a song, reads its tempo and key with Analyze, reads its chords with Chords, drags stems into a music app, saves a voice profile |
 | 10 min | Training a LoRA | Walks through the page and runs a small batch. Explain the known limits |
 | 10 min | Chat | Asks the assistant how to do something from the session, then, with `@agent`, asks it to render one image |
 | 10 min | Independent test | Runs one custom prompt alone while you stay online and quiet |
