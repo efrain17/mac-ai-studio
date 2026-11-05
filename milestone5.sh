@@ -33,7 +33,7 @@ check "Sketch-and-fill node" test -f "$COMFYUI_DIR/custom_nodes/reveal_mask.py"
 check "LM Studio app" test -d "/Applications/LM Studio.app"
 check "LM Studio command line tool" test -x "$LMS"
 check "AnythingLLM app" test -d "/Applications/AnythingLLM.app"
-check "ComfyUI tools for the assistant" test -f "$RUNTIME_DIR/comfy_mcp.py"
+check "ComfyUI tools for the assistant" test -f "$RUNTIME_DIR/comfy_mcp.py" -a -f "$RUNTIME_DIR/comfy_workflows.py"
 
 say "Each tool starts and answers (the first start can take several minutes)"
 for service in 10-images 20-music 30-stems-voices 40-chat; do

@@ -239,7 +239,8 @@ for group in images video video-pro; do
   mkdir -p "$RUNTIME_DIR/workflows/$group"
   cp "$REPO_DIR/workflows/$group/api/"*.json "$RUNTIME_DIR/workflows/$group/"
 done
-cp "$REPO_DIR/runtime/comfy_mcp.py" "$REPO_DIR/runtime/assistant.py" "$REPO_DIR/runtime/chat_launcher.py" "$RUNTIME_DIR/"
+cp "$REPO_DIR/runtime/comfy_mcp.py" "$REPO_DIR/runtime/comfy_workflows.py" "$REPO_DIR/runtime/assistant.py" \
+  "$REPO_DIR/runtime/chat_launcher.py" "$RUNTIME_DIR/"
 "$PY" "$REPO_DIR/runtime/assistant.py" mcp --python "$PY" --script "$RUNTIME_DIR/comfy_mcp.py" \
   --lmstudio-file "${MCP_FILES[0]}" --anythingllm-file "${MCP_FILES[1]}"
 

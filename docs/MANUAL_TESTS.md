@@ -175,11 +175,14 @@ It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool a
 | 3c | Ask something the documents do not cover, such as *What is the capital of France?* | The model says the studio's documents do not cover it, instead of answering from general knowledge |
 | 4 | Type `@agent` followed by: *Make a claymation image of a lighthouse in a storm.* Wait | The agent lists the workflows, runs `03_claymation`, and reports the file it saved. Press **My Files**: the image is there |
 | 5 | Ask the agent: *What are the newest files I made?* | A list of the latest files, newest first |
+| 5b | Type `@agent` followed by: *Make a copy of the claymation workflow called Clay poster, 832 by 1216, with 24 steps.* | The agent says it saved **Clay poster**. In the Images & Video tab, press `W`, open **Mac AI Studio > From chat**: Clay poster is there, and its **Render** node shows 24 steps and its size node 832 × 1216 |
+| 5c | Ask the agent: *In Clay poster, lower the LoRA strength to 0.6, then run it with a fox in a red scarf.* | It updates the workflow (reopen it in ComfyUI: the **Style LoRA** node shows 0.6) and renders a claymation fox |
+| 5d | Ask the agent: *Change the steps of 03_claymation to 10.* | It refuses: the studio's own workflows are never changed. It offers to make a copy instead |
 | 6 | Open **Stems & Voices (Demucs) > Analyze**, drop in the test song, press **Analyze** | Tempo in BPM, the key, the length and the levels |
 | 6b | Open **Chords**, drop in a song (a Suno or ACE-Step song works), leave **Separate guitar and keys** on, press **Read chords**. Wait for the split | A chart with three sections (main progression, guitar, keys), each a list of times and chord letters such as `0:12.4  Am`. A part the song does not have says so. The same chart is in **My Files > chords** as a text file. Play the song along the chart: most chords should match |
 | 7 | Open **LM Studio** from Applications, pick the gpt-oss model, open its Integrations (the plug icon) | `mac-ai-studio-comfyui` is listed, with the same tools |
 
-**Pass:** steps 1 to 3c answer from the documents with sources, step 4 produces an image, step 6 shows a tempo and key, and step 6b gives a chord chart.
+**Pass:** steps 1 to 3c answer from the documents with sources, step 4 produces an image, steps 5b to 5d create, update and protect workflows, step 6 shows a tempo and key, and step 6b gives a chord chart.
 
 To check that it works offline, turn Wi-Fi off before step 1. LM Studio shows a notice that it cannot check for updates; everything else works the same.
 
