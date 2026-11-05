@@ -154,7 +154,7 @@ Three full songs: indie folk with vocals, a cinematic score, upbeat pop with voc
 ./milestone4.sh --test
 ```
 
-It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool and the Chords tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), confirms the workspace holds the documents, and searches them with a sample question. Each line should say `PASS`.
+It checks the assistant's ComfyUI tools, the Chat tab's page, the Analyze tool and the Chords tool against stand-ins, starts the Chat tab, asks the chat model for one word (the first answer loads 63 GB and can take up to 15 minutes), confirms the workspace holds the documents, and searches them with a sample question. Each line should say `PASS`. If one says `FAIL`, run `./milestone4.sh --diagnose` and send the report it prints.
 
 **First open, once**
 

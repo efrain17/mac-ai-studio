@@ -7,6 +7,7 @@
 #   ./milestone4.sh --verify  check the installed model files against their checksums
 #   ./milestone4.sh --import  load the documentation into AnythingLLM again
 #   ./milestone4.sh --test    check the tools, the model and the apps without a person
+#   ./milestone4.sh --diagnose  print a report about the chat to copy and paste when it misbehaves
 set -euo pipefail
 . "$(dirname "$0")/lib/common.sh"
 
@@ -62,6 +63,20 @@ case "${1:-}" in
   --verify)
     verify_models "$MANIFEST"
     exit $?
+    ;;
+  --diagnose)
+    require_milestone4
+    # Leaves the Chat tab as it was: started for the report only if it was not running.
+    started=0
+    if ! "$RUNTIME_DIR/services.sh" status | grep -q "^40-chat: running"; then
+      "$RUNTIME_DIR/services.sh" start 40-chat >/dev/null \
+        || echo "The Chat tab did not start; the report shows what is missing."
+      started=1
+    fi
+    "$PY" "$REPO_DIR/runtime/assistant.py" diagnose --storage "$ANYTHINGLLM_STORAGE" \
+      --knowledge "$KNOWLEDGE_DIR" --port "$ANYTHINGLLM_PORT" --lmstudio-url "http://127.0.0.1:$LMSTUDIO_PORT"
+    [ "$started" = 0 ] || "$RUNTIME_DIR/services.sh" stop 40-chat
+    exit 0
     ;;
   --import)
     preflight 5
@@ -126,7 +141,7 @@ PY
       if grep -q mac-ai-studio-comfyui "$file" 2>/dev/null; then echo "PASS  $file"; else echo "FAIL  $file"; status=1; fi
     done
     "$RUNTIME_DIR/services.sh" stop 40-chat
-    [ "$status" = 0 ] || die "A check failed. See 'Chat assistant' in docs/TROUBLESHOOTING.md."
+    [ "$status" = 0 ] || die "A check failed. Run ./milestone4.sh --diagnose and send the report, or see 'Chat assistant' in docs/TROUBLESHOOTING.md."
     echo
     echo "Asking the assistant a question needs a person: see Milestone 4 in docs/MANUAL_TESTS.md."
     exit 0
