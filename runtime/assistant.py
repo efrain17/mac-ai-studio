@@ -65,7 +65,7 @@ Mac AI Studio is one desktop app (in Applications) with four tabs. Each tab is a
 | Images & Video (ComfyUI) | ComfyUI, a node editor | Renders images in three styles (gritty graphic novel, photorealistic human, claymation) and three video flows (text to video, sketch folder to video, sketch-and-fill animation). Each flow is a saved workflow in the Workflows panel (press W), under the Mac AI Studio folder; Pro video flows use Wan 2.2, the others LTX-Video |
 | Music (ACE-Step) | ACE-Step 1.5 | Makes complete songs with vocals from a description (caption) and lyrics. Has a LoRA Training tab. Temperature, Top-K and Top-P are under Settings > LM Generation at the top of its page |
 | Stems & Voices (Demucs) | Demucs and librosa, in a small page made for the studio | Split Stems: a song into vocals, drums, bass, other and instrumental WAV files (a 6-stem choice adds guitar and piano). Analyze: tempo, key, length and levels of a song. Chords: a text chord chart in letters (C, G, Am, F) with the time each chord starts; with "Separate guitar and keys" on, three charts: main progression, guitar and keys. Voice Profiles: saves singer descriptions to paste into the Music caption |
-| Chat (AnythingLLM) | AnythingLLM, with LM Studio running the gpt-oss-120b model | This assistant. Answers questions about the studio from its documents. In agent mode (start a message with @agent) it can run the studio's image and video workflows through its ComfyUI tools |
+| Chat (AnythingLLM) | AnythingLLM, with LM Studio running the gpt-oss-120b model | This assistant, in AnythingLLM's own window; the tab shows its status and an Open AnythingLLM button. Answers questions about the studio from its documents. In agent mode (start a message with @agent) it can run the studio's image and video workflows through its ComfyUI tools |
 
 ## Folders
 
@@ -77,9 +77,9 @@ Mac AI Studio is one desktop app (in Applications) with four tabs. Each tab is a
 
 ## Programs that run behind the tabs
 
-- ComfyUI listens on port 18188, ACE-Step on 17860, the stems page on 17870, LM Studio's server on 1234, AnythingLLM on 3001. All on 127.0.0.1 only.
+- ComfyUI listens on port 18188, ACE-Step on 17860, the stems page on 17870, the Chat tab's status page on 17880, LM Studio's server on 1234, AnythingLLM on 3001. All on 127.0.0.1 only.
 - LM Studio is also a normal app in Applications: open it to chat with the model directly, with the same ComfyUI tools under its Integrations button.
-- AnythingLLM is also an app in Applications; the Chat tab shows its page.
+- AnythingLLM is an app in Applications. The chat happens in its own window: the Chat tab starts it and LM Studio's server, shows whether both are running, and has an Open AnythingLLM button that brings its window forward. AnythingLLM's desktop app has no web page, so it cannot show inside Mac AI Studio.
 
 ## What the assistant's ComfyUI tools do
 

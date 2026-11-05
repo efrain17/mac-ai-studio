@@ -83,13 +83,15 @@ case "${1:-}" in
     status=0
     say "ComfyUI tools (with a stand-in ComfyUI)"
     "$PY" "$REPO_DIR/tests/check_comfy_mcp.py" || status=1
+    say "Chat tab page (with stand-ins for AnythingLLM and LM Studio)"
+    "$PY" "$REPO_DIR/tests/check_chat_launcher.py" || status=1
     say "Analyze tool"
     "$STEMS_ENV/bin/python" "$REPO_DIR/tests/check_analyze.py" || status=1
     say "Chords tool"
     "$STEMS_ENV/bin/python" "$REPO_DIR/tests/check_chords.py" || status=1
     say "Chat tab (starts LM Studio's server and AnythingLLM)"
     if url="$("$RUNTIME_DIR/services.sh" start 40-chat)"; then
-      echo "PASS  AnythingLLM answered at $url"
+      echo "PASS  AnythingLLM answered, and the Chat tab's page is at $url"
     else
       die "The Chat tab did not start. See $LOG_DIR/40-chat.log"
     fi
@@ -222,7 +224,7 @@ for group in images video video-pro; do
   mkdir -p "$RUNTIME_DIR/workflows/$group"
   cp "$REPO_DIR/workflows/$group/api/"*.json "$RUNTIME_DIR/workflows/$group/"
 done
-cp "$REPO_DIR/runtime/comfy_mcp.py" "$REPO_DIR/runtime/assistant.py" "$RUNTIME_DIR/"
+cp "$REPO_DIR/runtime/comfy_mcp.py" "$REPO_DIR/runtime/assistant.py" "$REPO_DIR/runtime/chat_launcher.py" "$RUNTIME_DIR/"
 "$PY" "$REPO_DIR/runtime/assistant.py" mcp --python "$PY" --script "$RUNTIME_DIR/comfy_mcp.py" \
   --lmstudio-file "${MCP_FILES[0]}" --anythingllm-file "${MCP_FILES[1]}"
 

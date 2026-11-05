@@ -62,7 +62,7 @@ The Homebrew installer asks you to press Return and type the Mac's admin passwor
 
 ## Daily use
 
-Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
+Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. The first three show their tool inside the window. The Chat tab starts AnythingLLM and opens its own window, because AnythingLLM's desktop app has no page that can show inside another app; the tab shows whether it is running and an **Open AnythingLLM** button. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
 
 ## Updating
 
@@ -95,7 +95,7 @@ The studio is built to run on a computer that is already in daily use:
 - **Shell settings untouched.** No script edits `.zshrc` or `.bash_profile`, and the studio does not use conda. If the Mac already has conda, a second one is not added.
 - **Other Python setups ignored.** `PYTHONPATH`, active conda environments, user site-packages, and pip or uv settings are all cleared for the studio's processes.
 - **Existing Homebrew packages left alone during install.** Installing upgrades nothing. `update.sh` upgrades only the studio's tools by name, plus whatever Homebrew requires them to bring along. An Intel Homebrew in `/usr/local` is ignored.
-- **Ports.** Tools use 18188, 17860 and 17870, not the usual 8188 and 7860. If a port is busy, the tool takes the next free one and leaves the other program running. LM Studio's server uses 1234 and AnythingLLM 3001, which those apps fix themselves.
+- **Ports.** Tools use 18188, 17860, 17870 and 17880, not the usual 8188 and 7860. If a port is busy, the tool takes the next free one and leaves the other program running. LM Studio's server uses 1234 and AnythingLLM 3001, which those apps fix themselves.
 - **This Mac only.** Every tool listens on `127.0.0.1`.
 - **Existing Stability Matrix kept.** Its copy, settings and library are not changed.
 - **Backups.** Models and environments are excluded from Time Machine, since they can be downloaded again.
@@ -121,7 +121,7 @@ These scripts have **not yet been run on Apple Silicon**. They were developed on
 | The three image workflows on CPU, with an older ComfyUI (reduced size and steps) | The same workflows on ComfyUI v0.43.0 |
 | A real offline Demucs split, and voice profiles, on CPU; the song and stem checks on synthetic audio | Demucs on Metal; ACE-Step (never started), so also the Pro music test |
 | Reveal node's masks and frames, calculated without ComfyUI | All six video workflows (compared with v0.43.0 source only) |
-| The assistant's ComfyUI tools and the AnythingLLM import, against stand-ins; the Analyze and Chords tools on synthetic songs; fetching the pinned documentation | LM Studio with the chat model, AnythingLLM with that server, the Chat tab, embedding the documents |
+| The assistant's ComfyUI tools and the AnythingLLM import, against stand-ins; the Analyze and Chords tools on synthetic songs; fetching the pinned documentation | LM Studio with the chat model, AnythingLLM with that server, the Chat tab with the real apps, embedding the documents |
 
 Run all five scripts on a spare or rented Apple Silicon Mac before relying on them.
 
@@ -133,5 +133,5 @@ Run all five scripts on a spare or rented Apple Silicon Mac before relying on th
 - **Temperature, Top-K and Top-P** are real controls, but they sit in ACE-Step's generation settings, not its training page.
 - **Chord charts are estimates.** The Chords tool reads major and minor chords only (sevenths show as the plain chord) and gets some wrong in busy mixes. Check a chart by ear before relying on it.
 - **The assistant acts only inside ComfyUI.** In agent mode it can render with the studio's workflows and list the files made. It cannot generate music, split stems or change settings; those stay point-and-click in their own tabs. Its answers come from the documentation at the versions installed, so it does not know about newer releases.
-- **One-time choice in AnythingLLM.** On the first open of the Chat tab, the owner picks LM Studio as the model provider in AnythingLLM's settings. The installer cannot make that choice for them, since AnythingLLM keeps it outside any file the installer may edit.
+- **One-time choice in AnythingLLM.** On the first open of AnythingLLM, the owner picks LM Studio as the model provider in AnythingLLM's settings. The installer cannot make that choice for them, since AnythingLLM keeps it outside any file the installer may edit.
 - **Licenses.** See [model licenses](docs/DEPENDENCIES.md#model-licenses). Check them before commercial use, especially the Demucs weights, the Graphic Novel LoRA and LTX-Video.
