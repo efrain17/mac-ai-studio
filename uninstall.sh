@@ -8,12 +8,19 @@ set -euo pipefail
 [ -d "$STUDIO_HOME" ] || { echo "Nothing to remove: $STUDIO_HOME does not exist."; exit 0; }
 
 echo "This removes $STUDIO_HOME ($(du -sh "$STUDIO_HOME" | cut -f1)) and /Applications/Mac AI Studio.app."
-echo "Your finished files in $OUTPUT_DIR move to Documents and are kept."
+echo "Your finished files in $OUTPUT_DIR, and the workflows the chat made, move to Documents and are kept."
 printf 'Type REMOVE to continue: '
 read -r answer
 [ "$answer" = "REMOVE" ] || { echo "Nothing was changed."; exit 0; }
 
 [ ! -x "$RUNTIME_DIR/services.sh" ] || "$RUNTIME_DIR/services.sh" stop-all
+
+# Workflows the chat made are the owner's work too: they go with the finished files.
+chat_workflows="$STUDIO_HOME/ComfyUI/user/default/workflows/Mac AI Studio/From chat"
+if [ -d "$chat_workflows" ] && [ -n "$(ls -A "$chat_workflows")" ]; then
+  mkdir -p "$OUTPUT_DIR/workflows from chat"
+  cp "$chat_workflows"/*.json "$OUTPUT_DIR/workflows from chat/"
+fi
 
 if [ -d "$OUTPUT_DIR" ] && [ -n "$(ls -A "$OUTPUT_DIR")" ]; then
   kept="$HOME/Documents/MacAIStudio-output-$(date +%Y%m%d-%H%M%S)"

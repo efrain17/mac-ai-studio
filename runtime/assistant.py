@@ -90,7 +90,11 @@ Mac AI Studio is one desktop app (in Applications) with four tabs. Each tab is a
 
 ## What the assistant's ComfyUI tools do
 
-In agent mode the assistant can call: `list_workflows` (the ready-made workflows and an example prompt for each), `run_workflow` (render one with a new prompt; images take about a minute, video much longer), `job_status`, `cancel_jobs`, `list_outputs` (newest files made) and `studio_status`. It cannot change the workflows themselves, delete files, or reach the internet.
+In agent mode the assistant can call: `list_workflows` (the ready-made workflows, and those the chat made, with an example prompt for each), `run_workflow` (render one with a new prompt; images take about a minute, video much longer), `job_status`, `cancel_jobs`, `list_outputs` (newest files made) and `studio_status`.
+
+It can also make workflows: `create_workflow` saves a new one in ComfyUI's Workflows panel under **Mac AI Studio > From chat**, either as a copy of a studio workflow with changed settings (steps, cfg, sampler, size, LoRA strength, prompt) or as a new graph of installed nodes; `update_workflow` changes one the chat made; `get_workflow` shows a workflow's nodes and settings; `list_node_types` shows the installed nodes and their choices, such as the model and LoRA files. Every workflow is checked against ComfyUI before it is saved, and the previous version of an updated one is kept in `~/MacAIStudio/chat-workflows/history`. The studio's own workflows are never changed; a workflow edited by hand in ComfyUI is only replaced when the owner agrees. The tools cannot delete files, install nodes or models, or reach the internet.
+
+Example requests: "@agent make a copy of the claymation workflow called Clay poster, 832 by 1216, 24 steps"; "@agent in Clay poster, lower the LoRA strength to 0.6"; "@agent run Clay poster with a fox in a red scarf".
 
 ## Updating
 
