@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
@@ -30,6 +31,7 @@ def check(label, ok, detail):
 
 class FakeHub(BaseHTTPRequestHandler):
     corrupt = set()
+    slow = set()
 
     def log_message(self, *_):
         pass
@@ -46,10 +48,20 @@ class FakeHub(BaseHTTPRequestHandler):
             self.end_headers()
             return
         data = FILES[name] if name not in self.corrupt else b"X" * len(FILES[name])
-        self.send_response(200)
+        # Like the real file store, a resumed download asks for the rest with a Range header.
+        offset = int(self.headers.get("Range", "bytes=0-")[6:].split("-")[0] or 0)
+        self.send_response(206 if offset else 200)
+        if offset:
+            self.send_header("Content-Range", f"bytes {offset}-{len(data) - 1}/{len(data)}")
+        data = data[offset:]
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        if body:
+        if body and name in self.slow:
+            for start in range(0, len(data), 100):
+                self.wfile.write(data[start:start + 100])
+                self.wfile.flush()
+                time.sleep(0.2)
+        elif body:
             self.wfile.write(data)
 
     def do_HEAD(self):

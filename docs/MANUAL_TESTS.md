@@ -34,6 +34,7 @@ It renders three images at full size. Each line should say `PASS`, and the sampl
 | 6 | Change the text in the **Prompt** box, keeping the style words, and press **Run** | A new image in the same style |
 | 7 | Press **My Files** | The folder with the images opens |
 | 8 | Press **Models** | Stability Matrix opens. Finish its first-run screens and confirm its model list shows the SDXL files |
+| 9 | Press **Get Models**, type `esrgan`, click **Video Upscale: Real-ESRGAN**, press **Download** | A window with a loading screen, then a search box. The template lists one file of 66.9 MB for `ComfyUI/models/upscale_models`; the progress bar fills and it ends with **Done, checksum OK** and **All files are in place**. Click the template again: the file reads **Already there**. **Close** returns to the app |
 
 **Pass:** one image for each of the three styles, and step 8 shows the shared models.
 

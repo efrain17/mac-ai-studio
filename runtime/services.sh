@@ -58,6 +58,9 @@ cmd_list() {
   printf '['
   for file in "$SERVICE_DIR"/*.conf; do
     [ -f "$file" ] || continue
+    # A tool opened from a button rather than a tab (SERVICE_HIDDEN=1) is left out.
+    # shellcheck disable=SC1090
+    ( . "$file"; [ -z "${SERVICE_HIDDEN:-}" ] ) || continue
     (
       # shellcheck disable=SC1090
       . "$file"

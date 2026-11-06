@@ -87,7 +87,9 @@ def catalog(templates):
                 models = model_entries(json.loads(path.read_text()))
             except (OSError, ValueError):
                 models = []
-            online = entry.get("openSource") is False or "API" in (entry.get("tags") or [])
+            # The index marks paid-service templates openSource false (and names most "api_…"); its
+            # "API" tag is not reliable: Real-ESRGAN carries it and runs locally.
+            online = (entry.get("openSource") is False or entry["name"].startswith("api_")) and not models
             items.append({"kind": "template", "name": entry["name"], "title": entry.get("title") or entry["name"],
                           "group": group.get("title", ""), "models": models, "online": online})
     if SAVED_DIR.is_dir():
@@ -205,26 +207,58 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
-def download(url, target, size, sha):
+def download(url, target, size, sha, started=None, quiet=False):
+    """Downloads into TARGET.part, checks it, then moves it into place. Returns a problem or None.
+    STARTED receives the curl process, so the Get Models window can stop it."""
     target.parent.mkdir(parents=True, exist_ok=True)
     part = target.with_name(target.name + ".part")
     # Resumes an interrupted download; a finished .part is checked instead of fetched again.
     if not (part.exists() and size and part.stat().st_size == size):
-        result = subprocess.run(["curl", "-fL", "--progress-bar", "--retry", "5", "--retry-delay", "5", "--retry-connrefused",
-                                 "-C", "-", "-o", str(part), url])
-        if result.returncode != 0:
-            return f"the download stopped (curl {result.returncode}); run this again to resume"
+        # -N writes each piece to disk as it arrives, so the window can show progress.
+        process = subprocess.Popen(["curl", "-fLN", "-s" if quiet else "--progress-bar", "--retry", "5", "--retry-delay",
+                                    "5", "--retry-connrefused", "-C", "-", "-o", str(part), url])
+        if started:
+            started(process)
+        if process.wait() != 0:
+            return f"the download stopped (curl {process.returncode}); start it again to resume"
     if size and part.stat().st_size != size:
+        actual = part.stat().st_size
         part.unlink()
-        return f"the file is {part.stat().st_size if part.exists() else 'not'} bytes, not {size}"
+        return f"the file is {actual} bytes, not {size}"
     if sha:
-        print(f"  Checking {target.name}…", flush=True)
+        if not quiet:
+            print(f"  Checking {target.name}…", flush=True)
         actual = sha256_file(part)
         if actual != sha:
             part.unlink()
             return f"its checksum does not match Hugging Face's ({actual[:12]}… instead of {sha[:12]}…); it was deleted"
     part.replace(target)
     return None
+
+
+def plan(item):
+    """One row per model file: name, size, folder (relative to the studio), state ("to download",
+    "already there" or "skipped") and, for skipped files, why. Asks Hugging Face for sizes."""
+    rows = []
+    for model in item["models"]:
+        target, why = destination(model)
+        row = {"name": model.get("name", "?"), "size": None, "folder": "-", "state": "skipped", "why": why,
+               "url": model.get("url"), "target": target, "sha": None}
+        if target is not None:
+            row["folder"] = str(target.parent.relative_to(STUDIO_HOME))
+            if already_there(model, target):
+                row.update(state="already there", why=None)
+            elif not allowed(model.get("url")):
+                row["why"] = f"not a Hugging Face address ({(model.get('url') or '')[:60]})"
+            else:
+                size, sha, problem = remote_info(model["url"])
+                row.update(size=size, sha=sha, why=problem, state="skipped" if problem else "to download")
+        rows.append(row)
+    return rows
+
+
+def free_bytes():
+    return shutil.disk_usage(STUDIO_HOME if STUDIO_HOME.exists() else pathlib.Path.home()).free
 
 
 def plan_and_get(item, check_only, assume_yes):
@@ -235,37 +269,19 @@ def plan_and_get(item, check_only, assume_yes):
         else:
             print("It names no model files: nothing to download.")
         return 0
-    rows, todo, problems = [], [], 0
-    for model in item["models"]:
-        target, why = destination(model)
-        name = model.get("name", "?")
-        if target is None:
-            rows.append((name, None, "-", f"skipped: {why}"))
-            problems += 1
-            continue
-        shown = str(target.parent.relative_to(STUDIO_HOME))
-        if already_there(model, target):
-            rows.append((name, None, shown, "already there"))
-            continue
-        if not allowed(model.get("url")):
-            rows.append((name, None, shown, f"skipped: not a Hugging Face address ({model.get('url', '')[:60]})"))
-            problems += 1
-            continue
-        size, sha, problem = remote_info(model["url"])
-        if problem:
-            rows.append((name, size, shown, f"skipped: {problem}"))
-            problems += 1
-            continue
-        rows.append((name, size, shown, "to download"))
-        todo.append((model, target, size, sha))
-    width = max(len(r[0]) for r in rows)
-    for name, size, shown, state in rows:
-        print(f"  {name:<{width}}  {size_text(size) if size is not None else '':>9}  {shown:<28}  {state}")
+    rows = plan(item)
+    todo = [r for r in rows if r["state"] == "to download"]
+    problems = sum(r["state"] == "skipped" for r in rows)
+    width = max(len(r["name"]) for r in rows)
+    for r in rows:
+        state = f"skipped: {r['why']}" if r["state"] == "skipped" else r["state"]
+        size = size_text(r["size"]) if r["size"] is not None else ""
+        print(f"  {r['name']:<{width}}  {size:>9}  {r['folder']:<28}  {state}")
     if not todo:
         print("Nothing to download." + (" Some files need attention; see above." if problems else ""))
         return 1 if problems else 0
-    total = sum(size or 0 for _, _, size, _ in todo)
-    free = shutil.disk_usage(STUDIO_HOME if STUDIO_HOME.exists() else pathlib.Path.home()).free
+    total = sum(r["size"] or 0 for r in todo)
+    free = free_bytes()
     question = (f"Download {len(todo)} file{'s' if len(todo) != 1 else ''}, {size_text(total)}? "
                 f"Free on disk: {size_text(free)}.")
     if check_only:
@@ -281,14 +297,14 @@ def plan_and_get(item, check_only, assume_yes):
             print("Nothing was downloaded.")
             return 0
     failures = 0
-    for model, target, size, sha in todo:
-        print(f"\n{model['name']} ({size_text(size)}) -> {target.parent}", flush=True)
-        problem = download(model["url"], target, size, sha)
+    for r in todo:
+        print(f"\n{r['name']} ({size_text(r['size'])}) -> {r['target'].parent}", flush=True)
+        problem = download(r["url"], r["target"], r["size"], r["sha"])
         if problem:
             print(f"  FAILED: {problem}")
             failures += 1
         else:
-            print("  Done" + (", checksum matches Hugging Face's." if sha else " (Hugging Face gave no checksum for it)."))
+            print("  Done" + (", checksum matches Hugging Face's." if r["sha"] else " (Hugging Face gave no checksum for it)."))
     print()
     if failures:
         print(f"{failures} file(s) did not download. Run the same command again: finished files are skipped.")

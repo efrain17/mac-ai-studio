@@ -260,6 +260,13 @@ final class StudioController: NSObject, NSWindowDelegate, WKUIDelegate, WKNaviga
   private let container = NSView()
   private var views: [String: WKWebView] = [:]
   private var loading: [String: LoadingView] = [:]
+  // The Get Models window: a sheet over the main window with the 50-models page in it.
+  private static let modelsService = Service(
+    id: "50-models", title: "Get Models",
+    hint: "The list of ComfyUI's templates is opening. It takes a few seconds.", timeout: 60)
+  private let modelsContainer = NSView()
+  private var modelsSheet: NSWindow?
+  private var modelsView: WKWebView?
   private var current: Service?
   private var downloadTargets: [ObjectIdentifier: URL] = [:]
 
@@ -295,8 +302,9 @@ final class StudioController: NSObject, NSWindowDelegate, WKUIDelegate, WKNaviga
 
     let models = NSButton(title: "Models", target: self, action: #selector(openModels))
     let outputs = NSButton(title: "My Files", target: self, action: #selector(openOutputs))
+    let getModels = NSButton(title: "Get Models", target: self, action: #selector(openGetModels))
 
-    let toolbar = NSStackView(views: [tabs, NSView(), outputs, models])
+    let toolbar = NSStackView(views: [tabs, NSView(), getModels, outputs, models])
     toolbar.orientation = .horizontal
     toolbar.spacing = 10
     toolbar.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
@@ -363,16 +371,89 @@ final class StudioController: NSObject, NSWindowDelegate, WKUIDelegate, WKNaviga
     return view
   }
 
-  private func show(_ view: NSView) {
-    container.subviews.forEach { $0.removeFromSuperview() }
+  private func show(_ view: NSView) { fill(container, with: view) }
+
+  /// Makes VIEW the only thing inside HOST, filling it.
+  private func fill(_ host: NSView, with view: NSView) {
+    host.subviews.forEach { $0.removeFromSuperview() }
     view.translatesAutoresizingMaskIntoConstraints = false
-    container.addSubview(view)
+    host.addSubview(view)
     NSLayoutConstraint.activate([
-      view.topAnchor.constraint(equalTo: container.topAnchor),
-      view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-      view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-      view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+      view.topAnchor.constraint(equalTo: host.topAnchor),
+      view.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+      view.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+      view.trailingAnchor.constraint(equalTo: host.trailingAnchor),
     ])
+  }
+
+  // MARK: Get Models
+
+  /// Opens the Get Models window. Its page keeps running when the window closes, so a download
+  /// goes on in the background and the window shows its progress again when reopened.
+  @objc private func openGetModels() {
+    let sheet = modelsSheet ?? makeModelsSheet()
+    modelsSheet = sheet
+    if modelsView == nil { startModels() }
+    window.beginSheet(sheet)
+  }
+
+  @objc private func closeGetModels() {
+    if let sheet = modelsSheet { window.endSheet(sheet) }
+  }
+
+  private func makeModelsSheet() -> NSWindow {
+    let sheet = NSWindow(
+      contentRect: NSRect(x: 0, y: 0, width: 860, height: 640),
+      styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    sheet.title = "Get Models"
+    sheet.minSize = NSSize(width: 640, height: 460)
+    let content = NSView()
+    sheet.contentView = content
+
+    let note = NSTextField(
+      labelWithString: "Downloads go on after you close this window, until you quit Mac AI Studio.")
+    note.textColor = .secondaryLabelColor
+    let close = NSButton(title: "Close", target: self, action: #selector(closeGetModels))
+    close.keyEquivalent = "\u{1b}"
+    let bar = NSStackView(views: [note, NSView(), close])
+    bar.orientation = .horizontal
+    bar.edgeInsets = NSEdgeInsets(top: 8, left: 14, bottom: 10, right: 14)
+
+    for view in [modelsContainer, bar] as [NSView] {
+      view.translatesAutoresizingMaskIntoConstraints = false
+      content.addSubview(view)
+    }
+    NSLayoutConstraint.activate([
+      modelsContainer.topAnchor.constraint(equalTo: content.topAnchor),
+      modelsContainer.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+      modelsContainer.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+      modelsContainer.bottomAnchor.constraint(equalTo: bar.topAnchor),
+      bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+      bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+      bar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+    ])
+    return sheet
+  }
+
+  /// Starts the page behind the window, with the same loading screen as a tab.
+  private func startModels() {
+    let service = StudioController.modelsService
+    let loader = LoadingView(service: service)
+    loader.retry = { [weak self] in self?.startModels() }
+    loader.showLogs = { [weak self] in self?.backend.run(["open-logs"]) { _, _, _ in } }
+    fill(modelsContainer, with: loader)
+    backend.run(["start", service.id]) { [weak self] code, output, error in
+      guard let self else { return }
+      guard code == 0, let url = URL(string: output), url.scheme == "http" else {
+        loader.fail(error.isEmpty ? "The logs folder says why." : error)
+        return
+      }
+      loader.stop()
+      let view = self.makeWebView()
+      self.modelsView = view
+      view.load(URLRequest(url: url))
+      self.fill(self.modelsContainer, with: view)
+    }
   }
 
   @objc private func openModels() { backend.run(["open-models"]) { _, _, _ in } }
