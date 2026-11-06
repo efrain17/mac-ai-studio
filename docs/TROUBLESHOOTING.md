@@ -100,6 +100,7 @@ Metal failures are often silent. A video can finish with no error and still be w
 | Problem | Likely cause and fix |
 | --- | --- |
 | Music tab takes minutes to open | Normal on first start. The limit is 15 minutes |
+| Generating stops with `5Hz LM not initialized. Please initialize it first.` | Fixed on 2026-11-05. ACE-Step looked for its language model in `~/MacAIStudio/ace-step/checkpoints`, not where the studio keeps it. Quit Mac AI Studio, run `git pull`, then `./milestone3.sh` (it skips the downloads it already has, but checks them, which takes a few minutes), and open the Music tab again. The quick fix without the installer: `rmdir ~/MacAIStudio/ace-step/checkpoints 2>/dev/null; ln -s ~/MacAIStudio/models/ace-step ~/MacAIStudio/ace-step/checkpoints` |
 | Garbled XL output *(reported)* | Fixed at the pinned commit, which is why it is newer than the last tag. Do not "update" to `v0.1.8` |
 | Repetitive XL output *(reported)* | Turn off DCW and set **LM Codes Strength** to 0 |
 | Memory climbs and generation stalls *(reported)* | Leave **Auto-score** off with MLX and XL |
