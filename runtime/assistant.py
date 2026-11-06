@@ -96,6 +96,10 @@ It can also make workflows: `create_workflow` saves a new one in ComfyUI's Workf
 
 Example requests: "@agent make a copy of the claymation workflow called Clay poster, 832 by 1216, 24 steps"; "@agent in Clay poster, lower the LoRA strength to 0.6"; "@agent run Clay poster with a fox in a red scarf".
 
+## Models for ComfyUI's templates
+
+ComfyUI's Templates window has hundreds of ready-made templates; most need model files the studio does not install. In Terminal, in the installer folder, `./get-models.sh "<title on the template's card, or the short name on its tab once opened>"` shows each file, its size and folder, asks, then downloads what is missing from Hugging Face and checks each file's checksum. `./get-models.sh --list` (optionally with a word, such as `--list flux`) lists the templates and what they need; `--check` shows without downloading. Files go into `~/MacAIStudio/models` (checkpoints, LoRAs, VAEs, ControlNets, diffusion models, text encoders) or `~/MacAIStudio/ComfyUI/models` (everything else). After downloading, press R in ComfyUI. Templates marked "online service" cannot run offline; gated models need a Hugging Face login and are downloaded by hand. See the guide "TEMPLATE_MODELS".
+
 ## Updating
 
 Quit Mac AI Studio and double-click **Update Mac AI Studio.command** in the installer folder. It updates the programs that come from Homebrew (Git, Python, uv, FFmpeg, Miniconda, Stability Matrix, LM Studio, AnythingLLM) and checks the studio. ComfyUI, ACE-Step, Demucs and the models stay at their tested versions. LM Studio also offers updates by itself when it is opened; accepting them is fine. See the guide "Updating".

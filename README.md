@@ -64,6 +64,16 @@ The Homebrew installer asks you to press Return and type the Mac's admin passwor
 
 Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. The first three show their tool inside the window. The Chat tab starts AnythingLLM and opens its own window, because AnythingLLM's desktop app has no page that can show inside another app; the tab shows whether it is running and an **Open AnythingLLM** button. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
 
+## Models for ComfyUI's templates
+
+ComfyUI's ready-made templates usually need model files the studio does not install. Find the template's title on its card in ComfyUI's **Templates** window (or the short name on its tab once opened), then:
+
+```bash
+./get-models.sh "Z-Image-Turbo: Text to Image"
+```
+
+It shows each file with its size and folder, asks, downloads only what is missing, and checks every file against Hugging Face's checksum. `./get-models.sh --list` lists every template and what it needs. See [Models for templates](docs/TEMPLATE_MODELS.md).
+
 ## Updating
 
 Quit Mac AI Studio, then double-click **Update Mac AI Studio.command** in this folder. Or run:
@@ -80,6 +90,7 @@ ComfyUI, ACE-Step, Demucs, librosa, PyTorch and the models are not updated this 
 
 - [Manual test steps](docs/MANUAL_TESTS.md): how to test and show each milestone
 - [Updating](docs/UPDATING.md): the owner's short guide to updates
+- [Models for templates](docs/TEMPLATE_MODELS.md): getting the files a ComfyUI template needs
 - [Pro video flows](docs/VIDEO_PRO.md): why the first videos looked rushed, what the Pro flows change, what to expect
 - [Pro music test](docs/MUSIC_PRO.md): a real song rendered, split and checked, and what each check means
 - [Problems and fixes](docs/TROUBLESHOOTING.md)
@@ -117,6 +128,7 @@ These scripts have **not yet been run on Apple Silicon**. They were developed on
 | Refusal on an unsupported Mac; script syntax and lint | Running any `milestone` script from start to finish |
 | Model URLs, sizes and checksums; resume, damage and repair handling | Every Homebrew install and `update.sh`; Stability Matrix and its shared models |
 | Port conflicts and clean tool shutdown | PyTorch on Metal; every render time |
+| `get-models.sh` on ComfyUI v0.43.0's real templates and Hugging Face (sizes, checksums, one real download) | `get-models.sh` on the Mac |
 | Desktop app build, launch and quit, with stand-in tools | The app showing the real tools; clicking through its dialogs; the loading screen, added after that build |
 | The three image workflows on CPU, with an older ComfyUI (reduced size and steps) | The same workflows on ComfyUI v0.43.0 |
 | A real offline Demucs split, and voice profiles, on CPU; the song and stem checks on synthetic audio | Demucs on Metal; ACE-Step (never started), so also the Pro music test |
