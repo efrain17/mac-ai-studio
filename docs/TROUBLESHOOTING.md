@@ -64,6 +64,11 @@ The port can differ from the usual one if something else is using it. That is in
 | Style looks weak | Keep the trigger words in the prompt: `graphic novel illustration` or `Clay Animation, Clay` |
 | Workflow folder is empty | Run `./milestone1.sh` again; it copies the workflows |
 
+| A template says models are missing | Run `./get-models.sh "<the title on the template's card>"`. See [Models for templates](TEMPLATE_MODELS.md) |
+| `get-models.sh` skips a file: `needs a Hugging Face login` | The model is gated. Open its Hugging Face page in a browser, sign in, accept the terms, download it, and paste it into the folder the script showed |
+| `get-models.sh`: `checksum does not match` | The download was damaged and deleted. Run the same command again |
+| A template still fails after its models are in place | It may need a node or setting that does not work on a Mac yet, or a newer ComfyUI than the studio's. Read the error in the tab and `~/MacAIStudio/logs/10-images.log` |
+
 ## Video
 
 Metal failures are often silent. A video can finish with no error and still be wrong.

@@ -30,6 +30,8 @@ say "Programs"
 check "Mac AI Studio app" test -d "/Applications/Mac AI Studio.app"
 check "Stability Matrix app" ls -d /Applications/Stability*Matrix*.app
 check "Sketch-and-fill node" test -f "$COMFYUI_DIR/custom_nodes/reveal_mask.py"
+check "Template models helper (get-models.sh)" "$COMFYUI_ENV/bin/python" "$REPO_DIR/tests/check_get_models.py"
+check "ComfyUI's templates found" "$COMFYUI_ENV/bin/python" -I -c "import comfyui_workflow_templates_json"
 check "LM Studio app" test -d "/Applications/LM Studio.app"
 check "LM Studio command line tool" test -x "$LMS"
 check "AnythingLLM app" test -d "/Applications/AnythingLLM.app"
