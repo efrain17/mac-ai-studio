@@ -171,7 +171,9 @@ fetch_models "$MANIFEST"
 verify_models "$MANIFEST" || die "A model failed its checksum. Run ./milestone1.sh again."
 
 say "Desktop app"
-install_runtime 10-images.conf
+install_runtime 10-images.conf 50-models.conf
+# The Get Models window and get-models.sh share these steps.
+cp "$REPO_DIR/runtime/models_page.py" "$REPO_DIR/tools/get_models.py" "$RUNTIME_DIR/"
 build_app
 
 exclude_from_backups "$MODELS_DIR" "$ENVS_DIR" "$CACHE_DIR" "$STUDIO_HOME/.downloads"

@@ -62,11 +62,11 @@ The Homebrew installer asks you to press Return and type the Mac's admin passwor
 
 ## Daily use
 
-Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. The first three show their tool inside the window. The Chat tab starts AnythingLLM and opens its own window, because AnythingLLM's desktop app has no page that can show inside another app; the tab shows whether it is running and an **Open AnythingLLM** button. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder.
+Open **Mac AI Studio** from Applications. Its tabs are named after what they do and the program behind them: **Images & Video (ComfyUI)**, **Music (ACE-Step)**, **Stems & Voices (Demucs)** and **Chat (AnythingLLM)**. The first three show their tool inside the window. The Chat tab starts AnythingLLM and opens its own window, because AnythingLLM's desktop app has no page that can show inside another app; the tab shows whether it is running and an **Open AnythingLLM** button. While a tool starts, its tab shows a loading screen with a clock and a hint, so a long model load never looks like a frozen app; if a tool does not start, the tab says why and offers **Try again** and **Show logs**. Quitting the app stops everything it started. Finished work is saved in `~/MacAIStudio/output`; the **My Files** button opens that folder. **Get Models** downloads the model files a ComfyUI template needs.
 
 ## Models for ComfyUI's templates
 
-ComfyUI's ready-made templates usually need model files the studio does not install. Find the template's title on its card in ComfyUI's **Templates** window (or the short name on its tab once opened), then:
+ComfyUI's ready-made templates usually need model files the studio does not install. Press **Get Models** in the app's toolbar, type part of the template's name, and press **Download**: a progress bar shows each file. Or from Terminal, with the title on the template's card in ComfyUI's **Templates** window (or the short name on its tab once opened):
 
 ```bash
 ./get-models.sh "Z-Image-Turbo: Text to Image"
@@ -106,7 +106,7 @@ The studio is built to run on a computer that is already in daily use:
 - **Shell settings untouched.** No script edits `.zshrc` or `.bash_profile`, and the studio does not use conda. If the Mac already has conda, a second one is not added.
 - **Other Python setups ignored.** `PYTHONPATH`, active conda environments, user site-packages, and pip or uv settings are all cleared for the studio's processes.
 - **Existing Homebrew packages left alone during install.** Installing upgrades nothing. `update.sh` upgrades only the studio's tools by name, plus whatever Homebrew requires them to bring along. An Intel Homebrew in `/usr/local` is ignored.
-- **Ports.** Tools use 18188, 17860, 17870 and 17880, not the usual 8188 and 7860. If a port is busy, the tool takes the next free one and leaves the other program running. LM Studio's server uses 1234 and AnythingLLM 3001, which those apps fix themselves.
+- **Ports.** Tools use 18188, 17860, 17870, 17880 and 17890, not the usual 8188 and 7860. If a port is busy, the tool takes the next free one and leaves the other program running. LM Studio's server uses 1234 and AnythingLLM 3001, which those apps fix themselves.
 - **This Mac only.** Every tool listens on `127.0.0.1`.
 - **Existing Stability Matrix kept.** Its copy, settings and library are not changed.
 - **Backups.** Models and environments are excluded from Time Machine, since they can be downloaded again.
@@ -128,7 +128,7 @@ These scripts have **not yet been run on Apple Silicon**. They were developed on
 | Refusal on an unsupported Mac; script syntax and lint | Running any `milestone` script from start to finish |
 | Model URLs, sizes and checksums; resume, damage and repair handling | Every Homebrew install and `update.sh`; Stability Matrix and its shared models |
 | Port conflicts and clean tool shutdown | PyTorch on Metal; every render time |
-| `get-models.sh` on ComfyUI v0.43.0's real templates and Hugging Face (sizes, checksums, one real download) | `get-models.sh` on the Mac |
+| `get-models.sh` and the Get Models page on ComfyUI v0.43.0's real templates and Hugging Face (sizes, checksums, a real download with its progress bar) | Both on the Mac; the Get Models button and window in the app |
 | Desktop app build, launch and quit, with stand-in tools | The app showing the real tools; clicking through its dialogs; the loading screen, added after that build |
 | The three image workflows on CPU, with an older ComfyUI (reduced size and steps) | The same workflows on ComfyUI v0.43.0 |
 | A real offline Demucs split, and voice profiles, on CPU; the song and stem checks on synthetic audio | Demucs on Metal; ACE-Step (never started), so also the Pro music test |

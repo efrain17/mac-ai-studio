@@ -1,8 +1,22 @@
 # Models for ComfyUI's templates
 
-ComfyUI comes with hundreds of ready-made templates. Most need model files the studio does not install. `get-models.sh` downloads them into the right folders for you.
+ComfyUI comes with hundreds of ready-made templates. Most need model files the studio does not install. Mac AI Studio downloads them into the right folders for you.
 
-## 1. Find the template's name
+## The easy way: the Get Models button
+
+1. In Mac AI Studio, press **Get Models** in the toolbar. A window opens.
+2. Type part of the template's name, for example `Z-Image`. Matching templates appear as you type.
+3. Click one. The window lists each file it needs, its size, its folder, and which files are already there.
+4. Press **Download**. A progress bar shows each file and the total. **Stop** pauses; **Download** again resumes where it stopped.
+5. When it says **All files are in place**, press **Close**, then press `R` in ComfyUI and open the template.
+
+Closing the window does not stop a download: reopen it to see the progress. Quitting Mac AI Studio stops it; the next download resumes.
+
+## The same from Terminal
+
+`get-models.sh` does the same steps without the window.
+
+### 1. Find the template's name
 
 In the **Images & Video (ComfyUI)** tab, open the **Templates** window (the **Templates** button in the left bar). The name to use is the **title on the card**, for example **Z-Image-Turbo: Text to Image**.
 
@@ -22,7 +36,7 @@ Add a word to shorten the list:
 
 Templates marked **online service** use a paid cloud service and cannot run offline in the studio. Those marked **no model files needed** work as they are.
 
-## 2. See what it needs
+### 2. See what it needs
 
 Open Terminal in the installer folder. This shows each file, its size and its folder, and downloads nothing:
 
@@ -32,7 +46,7 @@ Open Terminal in the installer folder. This shows each file, its size and its fo
 
 Part of the title is enough, as long as only one template matches. If several match, the script lists them; copy one title exactly. A workflow you saved in the Workflows panel works too, by its name.
 
-## 3. Download
+### 3. Download
 
 ```bash
 ./get-models.sh "Z-Image-Turbo: Text to Image"
