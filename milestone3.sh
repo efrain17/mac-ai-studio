@@ -139,11 +139,22 @@ if [ ! -L "$ACE_DIR/gradio_outputs" ]; then
 fi
 
 # ACE-Step's start-up loads the language model from its own checkpoints folder and ignores
-# ACESTEP_CHECKPOINTS_DIR, so without this link generation stops at "5Hz LM not initialized".
-rmdir "$ACE_DIR/checkpoints" 2>/dev/null || true
-[ -e "$ACE_DIR/checkpoints" ] || ln -s "$MODELS_DIR/ace-step" "$ACE_DIR/checkpoints"
-[ "$(cd "$ACE_DIR/checkpoints/acestep-5Hz-lm-4B" 2>/dev/null && pwd -P)" = "$(cd "$MODELS_DIR/ace-step/acestep-5Hz-lm-4B" && pwd -P)" ] \
-  || die "$ACE_DIR/checkpoints is not a link to $MODELS_DIR/ace-step. Move it away and run ./milestone3.sh again."
+# ACESTEP_CHECKPOINTS_DIR. Without this link the language model never loads: songs still render,
+# but Enhance Lyrics, Enhance Caption, Simple mode and Think stop at "5Hz LM not initialized".
+checkpoints="$ACE_DIR/checkpoints"
+rmdir "$checkpoints" 2>/dev/null || true
+if [ -L "$checkpoints" ] && [ "$(readlink "$checkpoints")" != "$MODELS_DIR/ace-step" ]; then
+  rm "$checkpoints"
+elif [ -e "$checkpoints" ] && [ ! -L "$checkpoints" ]; then
+  # A folder ACE-Step made by itself, for example while trying to download the model again.
+  old="$checkpoints.old-$(date +%Y%m%d-%H%M%S)"
+  mv "$checkpoints" "$old"
+  echo "Moved ACE-Step's own checkpoints folder ($(du -sh "$old" | cut -f1)) to $old."
+  echo "The studio does not use it. Delete it to free the space."
+fi
+[ -e "$checkpoints" ] || ln -s "$MODELS_DIR/ace-step" "$checkpoints"
+[ "$(cd "$checkpoints/acestep-5Hz-lm-4B" 2>/dev/null && pwd -P)" = "$(cd "$MODELS_DIR/ace-step/acestep-5Hz-lm-4B" && pwd -P)" ] \
+  || die "$checkpoints does not lead to the music models in $MODELS_DIR/ace-step."
 
 say "Stem splitter and voice page"
 make_venv "$STEMS_ENV"
