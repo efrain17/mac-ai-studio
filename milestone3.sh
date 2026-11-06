@@ -138,6 +138,13 @@ if [ ! -L "$ACE_DIR/gradio_outputs" ]; then
   ln -s "$OUTPUT_DIR/music" "$ACE_DIR/gradio_outputs"
 fi
 
+# ACE-Step's start-up loads the language model from its own checkpoints folder and ignores
+# ACESTEP_CHECKPOINTS_DIR, so without this link generation stops at "5Hz LM not initialized".
+rmdir "$ACE_DIR/checkpoints" 2>/dev/null || true
+[ -e "$ACE_DIR/checkpoints" ] || ln -s "$MODELS_DIR/ace-step" "$ACE_DIR/checkpoints"
+[ "$(cd "$ACE_DIR/checkpoints/acestep-5Hz-lm-4B" 2>/dev/null && pwd -P)" = "$(cd "$MODELS_DIR/ace-step/acestep-5Hz-lm-4B" && pwd -P)" ] \
+  || die "$ACE_DIR/checkpoints is not a link to $MODELS_DIR/ace-step. Move it away and run ./milestone3.sh again."
+
 say "Stem splitter and voice page"
 make_venv "$STEMS_ENV"
 "$STEMS_ENV/bin/python" -m pip install --require-hashes --only-binary=:all: \
